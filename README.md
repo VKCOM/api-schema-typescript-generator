@@ -1,5 +1,7 @@
 # VK API Schema Typescript Generator
 
+[![npm version](https://badge.fury.io/js/%40vkontakte%2Fapi-schema-typescript-generator.svg)](https://www.npmjs.com/package/@vkontakte/api-schema-typescript-generator)
+
 This package generates TypeScript typings based on the [VK API JSON schema](https://github.com/VKCOM/vk-api-schema).
 
 ## Usage
