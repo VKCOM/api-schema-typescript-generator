@@ -30,6 +30,7 @@
     "vk-api-schema-typescript-generator": "./bin/vk-api-schema-typescript-generator"
   },
   "scripts": {
+    "release": "./tasks/release.sh",
     "clear": "rimraf dist/*",
     "build": "yarn clear && tsc",
     "test": "tsc --noEmit && eslint src --ext .ts"
