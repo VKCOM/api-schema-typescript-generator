@@ -1,0 +1,56 @@
+{
+  "name": "@vkontakte/api-schema-typescript-generator",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "VK API TypeScript generator",
+  "author": {
+    "name": "VK",
+    "url": "https://vk.com"
+  },
+  "keywords": [
+    "VK",
+    "VK API",
+    "JSON Schema",
+    "TypeScript",
+    "generator"
+  ],
+  "contributors": [
+    {
+      "name": "Igor Fedorov",
+      "email": "ig.fedorov@corp.vk.com",
+      "url": "https://vk.com/xyz"
+    }
+  ],
+  "repository": "https://github.com/VKCOM/api-schema-typescript-generator",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "bin": {
+    "vk-api-schema-typescript-generator": "./bin/vk-api-schema-typescript-generator"
+  },
+  "scripts": {
+    "clear": "rimraf dist/*",
+    "build": "yarn clear && tsc",
+    "test": "tsc --noEmit && eslint src --ext .ts"
+  },
+  "pre-commit": [
+    "test"
+  ],
+  "dependencies": {
+    "chalk": "4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.13",
+    "@typescript-eslint/eslint-plugin": "2.34.0",
+    "@typescript-eslint/parser": "2.0.0",
+    "@vkontakte/eslint-config": "2.3.0",
+    "arg": "^4.1.3",
+    "eslint": "6.8.0",
+    "eslint-plugin-react": "7.19.0",
+    "eslint-plugin-react-hooks": "3.0.0",
+    "pre-commit": "1.2.2",
+    "rimraf": "^3.0.2",
+    "typescript": "3.9.5"
+  }
+}
