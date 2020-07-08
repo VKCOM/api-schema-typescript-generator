@@ -4,7 +4,7 @@ import { SchemaObject } from './SchemaObject';
 import {
   createImportsBlock,
   getInterfaceName, getMethodSection, getObjectNameByRef,
-  getSectionFromObjectName, isMethodNeeded, isPatternProperty,
+  getSectionFromObjectName, isMethodNeeded, isPatternProperty, prepareBuildDirectory,
   prepareMethodsPattern,
   writeFile,
 } from '../helpers';
@@ -22,6 +22,8 @@ import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
 
 interface APITypingsGeneratorOptions {
+  needEmit: boolean;
+
   /**
    * Path for generated typings
    */
@@ -41,20 +43,13 @@ interface APITypingsGeneratorOptions {
 
 export class APITypingsGenerator {
   constructor(options: APITypingsGeneratorOptions) {
-    const {
-      outDirPath,
-      methodsPattern,
-      methods,
-      objects,
-      responses,
-    } = options;
+    this.needEmit = options.needEmit;
+    this.outDirPath = options.outDirPath;
+    this.methodsPattern = prepareMethodsPattern(options.methodsPattern);
 
-    this.outDirPath = outDirPath;
-    this.methodsPattern = prepareMethodsPattern(methodsPattern);
-
-    this.methods = methods;
-    this.objects = this.convertJSONSchemaDictionary(objects);
-    this.responses = this.convertJSONSchemaDictionary(responses);
+    this.methods = options.methods;
+    this.objects = this.convertJSONSchemaDictionary(options.objects);
+    this.responses = this.convertJSONSchemaDictionary(options.responses);
 
     this.visitedRefs = {};
     this.generatedObjects = {};
@@ -67,8 +62,11 @@ export class APITypingsGenerator {
         'keysResponse': true,
       },
     };
+
+    this.resultFiles = {};
   }
 
+  needEmit!: APITypingsGeneratorOptions['needEmit'];
   outDirPath!: APITypingsGeneratorOptions['outDirPath'];
   methodsPattern!: Dictionary<boolean>;
 
@@ -83,6 +81,8 @@ export class APITypingsGenerator {
   exports!: Dictionary<Dictionary<boolean>>;
 
   ignoredResponses!: Dictionary<Dictionary<boolean>>;
+
+  resultFiles!: Dictionary<string>;
 
   private convertJSONSchemaDictionary(objects: any) {
     const dictionary: Dictionary<SchemaObject> = {};
@@ -102,6 +102,10 @@ export class APITypingsGenerator {
         [name]: true,
       },
     };
+  }
+
+  private registerResultFile(path: string, content: string) {
+    this.resultFiles[path] = content;
   }
 
   private appendToFileMap(section: string, imports: Dictionary<boolean>, codeBlocks: CodeBlocksArray) {
@@ -136,11 +140,12 @@ export class APITypingsGenerator {
     object.allOf.forEach((allOfItem) => {
       if (allOfItem.ref && !this.visitedRefs[allOfItem.ref]) {
         this.visitedRefs[allOfItem.ref] = true;
-        const objectName = getObjectNameByRef(allOfItem.ref);
+        const refName = allOfItem.ref;
+        const objectName = getObjectNameByRef(refName);
         allOfItem = this.objects[objectName];
 
         if (!allOfItem) {
-          consoleLogErrorAndExit('Not found');
+          consoleLogErrorAndExit(`${refName} ref not found`);
         }
       }
 
@@ -321,7 +326,7 @@ export class APITypingsGenerator {
 
     if (stringCodeBlocks.length > 0) {
       const code = stringCodeBlocks.join(newLineChar.repeat(2));
-      writeFile(path.join(this.outDirPath, 'objects', section, `${getInterfaceName(object.name)}.ts`), code);
+      this.registerResultFile(path.join('objects', section, `${getInterfaceName(object.name)}.ts`), code);
     }
 
     codeBlocks.forEach((codeBlock) => {
@@ -626,8 +631,6 @@ export class APITypingsGenerator {
       }
     });
 
-    consoleLogInfo('writing method params and responses...');
-
     Object.keys(this.methodFilesMap).forEach((section) => {
       const { imports, codeBlocks } = this.methodFilesMap[section];
       codeBlocks.forEach((codeBlock) => {
@@ -640,7 +643,7 @@ export class APITypingsGenerator {
         ...codeBlocks,
       ];
 
-      writeFile(path.join(this.outDirPath, 'methods', `${section}.ts`), code.join(newLineChar.repeat(2)));
+      this.registerResultFile(path.join('methods', `${section}.ts`), code.join(newLineChar.repeat(2)));
     });
   }
 
@@ -679,15 +682,14 @@ export class APITypingsGenerator {
     );
 
     this.registerExport('./common/common', getInterfaceName(baseAPIParamsInterfaceName));
-
-    writeFile(path.join(this.outDirPath, 'common', 'common.ts'), code.join(newLineChar.repeat(2)));
+    this.registerResultFile(path.join('common', 'common.ts'), code.join(newLineChar.repeat(2)));
   }
 
   /**
    * This method creates index.ts file with exports of all generated params, responses and objects
    */
   private createIndexExports() {
-    consoleLogInfo('Creating index.ts exports...');
+    consoleLogInfo('creating index.ts exports...');
 
     const blocks: string[] = [];
     let exportedObjects: Dictionary<boolean> = {};
@@ -713,7 +715,7 @@ export class APITypingsGenerator {
       blocks.push(blockLines.join(newLineChar));
     });
 
-    writeFile(path.join(this.outDirPath, 'index.ts'), blocks.join(newLineChar.repeat(2)));
+    this.registerResultFile('index.ts', blocks.join(newLineChar.repeat(2)));
     consoleLogInfo(`${Object.keys(exportedObjects).length} objects successfully generated`);
   }
 
@@ -721,7 +723,19 @@ export class APITypingsGenerator {
     consoleLogInfo('generate');
 
     this.generateMethods();
-    this.createCommonTypes();
-    this.createIndexExports();
+
+    if (this.needEmit) {
+      this.createCommonTypes();
+      this.createIndexExports();
+
+      consoleLogInfo('prepare out directory');
+      prepareBuildDirectory(this.outDirPath);
+
+      consoleLogInfo('write files');
+      Object.keys(this.resultFiles).forEach((filePath) => {
+        const fileContent = this.resultFiles[filePath];
+        writeFile(path.join(this.outDirPath, filePath), fileContent);
+      });
+    }
   }
 }
