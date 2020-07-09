@@ -1,6 +1,7 @@
 import arg from 'arg';
 import { inspect } from 'util';
 import chalk from 'chalk';
+import { isString } from './utils';
 
 export function parseArguments() {
   const args = arg(
@@ -17,10 +18,13 @@ export function parseArguments() {
     },
   );
 
+  const schemaDir = args['--schemaDir'];
+  const outDir = args['--outDir'];
+
   return {
     help: args['--help'] || false,
-    schemaDir: args['--schemaDir'] || null,
-    outDir: args['--outDir'] || null,
+    schemaDir: isString(schemaDir) ? schemaDir.trim() : null,
+    outDir: isString(outDir) ? outDir.trim() : null,
     methods: args['--methods'] || [],
   };
 }

@@ -2,20 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
-import { consoleLog, consoleLogErrorAndExit, parseArguments } from './cli';
+import { consoleLog, consoleLogErrorAndExit, consoleLogInfo, parseArguments } from './cli';
 import { APITypingsGenerator } from './generators/APITypingsGenerator';
-import { prepareBuildDirectory } from './helpers';
 
 const helpMessage = `
   Options:
-  
+
   ${chalk.greenBright('--help')}          Shows this help.
-  
+
   ${chalk.greenBright('--schemaDir')}     The relative path to directory with ${chalk.bold('methods.json')}, ${chalk.bold('objects.json')} and ${chalk.bold('responses.json')} files.
-  
+
   ${chalk.greenBright('--outDir')}        The directory where the files will be generated.
+                  If you skip this param, script will work in linter mode without emitting files to file system.
                   ${chalk.bold('Please note')} that this folder will be cleared after starting the generation.
-                  
+
   ${chalk.greenBright('--methods')}       List of methods to generate responses and all needed objects.
                   Example:
                   - ${chalk.bold('\'*\'')} - to generate all responses and objects.
@@ -42,8 +42,8 @@ export async function main() {
   }
 
   if (!outDir) {
-    consoleLogErrorAndExit(`You should specify ${chalk.greenBright('outDir')}. ${helpHint}`);
-    return;
+    consoleLogInfo(`${chalk.greenBright('outDir')} option is empty. ${helpHint}`);
+    consoleLogInfo('Script will work in linter mode without emitting files to file system.');
   }
 
   if (!Array.isArray(methods) || !methods.length) {
@@ -52,7 +52,7 @@ export async function main() {
   }
 
   schemaDir = path.resolve(schemaDir);
-  outDir = path.resolve(outDir);
+  outDir = outDir ? path.resolve(outDir) : '';
 
   // Read and check required schema files
 
@@ -93,9 +93,10 @@ export async function main() {
     return;
   }
 
-  prepareBuildDirectory(outDir);
+  const needEmit = !!outDir;
 
   const generator = new APITypingsGenerator({
+    needEmit,
     outDirPath: outDir,
     methods: methodsList,
     objects: objectsDefinitions,

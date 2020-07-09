@@ -34,6 +34,8 @@ The relative path to directory with `methods.json`, `objects.json` and `response
 
 The directory where the files will be generated.
 
+If you skip this param, script will work in linter mode without emitting files to file system.
+
 > **Please note** that this folder will be cleared after starting the generation.
 
 #### --methods
