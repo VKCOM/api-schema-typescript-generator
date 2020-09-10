@@ -14,7 +14,7 @@ import {
   getEnumPropertyName,
   getInterfaceName,
   getObjectNameByRef,
-  joinOneOfValues,
+  joinOneOfValues, resolvePrimitiveTypesArray,
   transformPatternPropertyName,
 } from '../helpers';
 import { consoleLogErrorAndExit } from '../cli';
@@ -205,6 +205,11 @@ export class SchemaObject {
 
       if (isString(items.type) && primitiveTypes[items.type]) {
         typeString = primitiveTypes[items.type] + '[]'.repeat(depth);
+      } else if (Array.isArray(items.type)) {
+        const primitivesTypesArray = resolvePrimitiveTypesArray(items.type);
+        if (primitivesTypesArray !== null) {
+          typeString = `Array<${primitivesTypesArray}>` + '[]'.repeat(depth);
+        }
       } else if (items.ref) {
         const refName = getObjectNameByRef(items.ref);
         const refObject = objects[refName];
@@ -224,9 +229,9 @@ export class SchemaObject {
 
         typeString = primitive;
       } else if (Array.isArray(type)) {
-        const isEveryTypePrimitive = this.type.every((type) => !!primitiveTypes[type]);
-        if (isEveryTypePrimitive) {
-          typeString = this.type.map((type) => primitiveTypes[type]).join(' | ');
+        const primitivesTypesArray = resolvePrimitiveTypesArray(this.type);
+        if (primitivesTypesArray !== null) {
+          typeString = primitivesTypesArray;
         }
       }
 
