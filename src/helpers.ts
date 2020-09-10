@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { capitalizeFirstLetter, sortArrayAlphabetically, uniqueArray } from './utils';
-import { newLineChar, spaceChar } from './constants';
+import { newLineChar, primitiveTypes, spaceChar } from './constants';
 import { Dictionary, ObjectType } from './types';
 import { consoleLogErrorAndExit } from './cli';
 
@@ -164,4 +164,13 @@ export function createImportsBlock(imports: Dictionary<boolean>, section: string
   });
 
   return importLines.join(newLineChar);
+}
+
+export function resolvePrimitiveTypesArray(types: string[]): string | null {
+  const isEveryTypePrimitive = types.every((type) => !!primitiveTypes[type]);
+  if (isEveryTypePrimitive) {
+    return types.map((type) => primitiveTypes[type]).join(' | ');
+  }
+
+  return null;
 }

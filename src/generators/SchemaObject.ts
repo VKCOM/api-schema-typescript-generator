@@ -1,13 +1,20 @@
 import { isObject, isString, quoteJavaScriptValue } from '../utils';
 import { Dictionary } from '../types';
-import { baseBoolIntRef, baseOkResponseRef, basePropertyExistsRef, primitiveTypes, scalarTypes } from '../constants';
+import {
+  baseBoolIntRef,
+  baseOkResponseRef,
+  basePropertyExistsRef,
+  primitiveTypes,
+  PropertyType,
+  scalarTypes,
+} from '../constants';
 import { TypeCodeBlock, TypeScriptCodeTypes } from './TypeCodeBlock';
 import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
 import {
   getEnumPropertyName,
   getInterfaceName,
   getObjectNameByRef,
-  joinOneOfValues,
+  joinOneOfValues, resolvePrimitiveTypesArray,
   transformPatternPropertyName,
 } from '../helpers';
 import { consoleLogErrorAndExit } from '../cli';
@@ -182,18 +189,36 @@ export class SchemaObject {
       });
 
       typeString = joinOneOfValues(values);
-    } else if (type === 'array' && this.items) {
-      if (isString(this.items.type) && primitiveTypes[this.items.type]) {
-        typeString = `${primitiveTypes[this.items.type]}[]`;
-      } else if (this.items.ref) {
-        const refName = getObjectNameByRef(this.items.ref);
+    } else if (type === PropertyType.ARRAY && this.items) {
+      let depth = 1;
+      let items = this.items;
+
+      // Nested arrays
+      while (true) {
+        if (items.items) {
+          items = items.items;
+          depth++;
+        } else {
+          break;
+        }
+      }
+
+      if (isString(items.type) && primitiveTypes[items.type]) {
+        typeString = primitiveTypes[items.type] + '[]'.repeat(depth);
+      } else if (Array.isArray(items.type)) {
+        const primitivesTypesArray = resolvePrimitiveTypesArray(items.type);
+        if (primitivesTypesArray !== null) {
+          typeString = `Array<${primitivesTypesArray}>` + '[]'.repeat(depth);
+        }
+      } else if (items.ref) {
+        const refName = getObjectNameByRef(items.ref);
         const refObject = objects[refName];
         if (!refObject) {
           consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
         }
 
         imports[refName] = true;
-        typeString = `${getInterfaceName(refName)}[]`;
+        typeString = getInterfaceName(refName) + '[]'.repeat(depth);
       }
     } else if (this.type) {
       if (isString(this.type)) {
@@ -204,9 +229,9 @@ export class SchemaObject {
 
         typeString = primitive;
       } else if (Array.isArray(type)) {
-        const isEveryTypePrimitive = this.type.every((type) => !!primitiveTypes[type]);
-        if (isEveryTypePrimitive) {
-          typeString = this.type.map((type) => primitiveTypes[type]).join(' | ');
+        const primitivesTypesArray = resolvePrimitiveTypesArray(this.type);
+        if (primitivesTypesArray !== null) {
+          typeString = primitivesTypesArray;
         }
       }
 

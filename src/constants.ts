@@ -1,6 +1,16 @@
 import { EOL } from 'os';
 import { Dictionary } from './types';
 
+export const PropertyType = {
+  INTEGER: 'integer',
+  BOOLEAN: 'boolean',
+  NUMBER: 'number',
+  STRING: 'string',
+  ARRAY: 'array',
+  OBJECT: 'object',
+  MIXED: 'mixed',
+} as const;
+
 export const scalarTypes: Dictionary<string> = {
   integer: 'number',
   boolean: 'boolean',
