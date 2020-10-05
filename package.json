@@ -1,6 +1,6 @@
 {
   "name": "@vkontakte/api-schema-typescript-generator",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "license": "MIT",
   "description": "VK API TypeScript generator",
   "author": {
