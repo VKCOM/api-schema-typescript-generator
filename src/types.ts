@@ -2,6 +2,8 @@ export interface Dictionary<T> {
   [key: string]: T;
 }
 
+export type RefsDictionary = Dictionary<true>;
+
 export enum ObjectType {
   Object = 'object',
   Response = 'response',
@@ -10,6 +12,7 @@ export enum ObjectType {
 
 export interface JSONSchemaPropertyInterface {
   type?: 'integer' | 'string' | 'boolean' | 'array';
+  items?: JSONSchemaPropertyInterface;
   $ref?: string;
   minimum?: number;
   format?: 'uri';

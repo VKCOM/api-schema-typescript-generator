@@ -1,5 +1,5 @@
 import { consoleLogErrorAndExit, consoleLogInfo } from '../cli';
-import { Dictionary, JSONSchemaMethodInterface, ObjectType } from '../types';
+import { Dictionary, JSONSchemaMethodInterface, ObjectType, RefsDictionary } from '../types';
 import { SchemaObject } from './SchemaObject';
 import {
   createImportsBlock,
@@ -338,6 +338,19 @@ export class APITypingsGenerator {
     this.generateObjectsFromImports(imports);
   }
 
+  private generateObjectsFromRefs(refs: RefsDictionary): void {
+    Object.keys(refs).forEach((ref) => {
+      const refName = getObjectNameByRef(ref);
+      const refObject = this.objects[refName];
+      if (!refObject) {
+        consoleLogInfo(`"${ref}" ref is not found`);
+        return;
+      }
+
+      this.generateObject(refObject);
+    });
+  }
+
   private generateObjectsFromImports(imports: Dictionary<boolean>) {
     Object.keys(imports).forEach((ref) => {
       const refName = getObjectNameByRef(ref);
@@ -371,6 +384,26 @@ export class APITypingsGenerator {
       if (paramRaw.type === 'boolean') {
         delete paramRaw.type;
         paramRaw.$ref = baseBoolIntRef;
+      }
+
+      // For parameters of the "array" type, VK API still accepts only a comma-separated string
+      // This may change in the future when the VK API starts accepting a json body
+      if (paramRaw.type === 'array') {
+        paramRaw.type = 'string';
+
+        if (!paramRaw.description) {
+          paramRaw.description = '';
+        }
+
+        if (paramRaw.items) {
+          if (paramRaw.items.$ref) {
+            this.generateObjectsFromRefs({
+              [paramRaw.items.$ref]: true,
+            });
+
+            paramRaw.description += newLineChar.repeat(2) + paramRaw.items.$ref;
+          }
+        }
       }
 
       return new SchemaObject(paramRaw.name, paramRaw, interfaceName);

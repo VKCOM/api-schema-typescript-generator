@@ -1,5 +1,21 @@
 import { Dictionary } from './types';
 
+export function flatten<T>(input: Array<T | T[]>): T[] {
+  const stack = [...input];
+  const result: T[] = [];
+  while (stack.length) {
+    const next = stack.pop();
+    if (next) {
+      if (Array.isArray(next)) {
+        stack.push(...next);
+      } else {
+        result.push(next);
+      }
+    }
+  }
+  return result.reverse();
+}
+
 export function isString(object: any): object is string {
   return typeof object === 'string';
 }

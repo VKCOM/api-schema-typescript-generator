@@ -87,7 +87,9 @@ export class TypeCodeBlock extends BaseCodeBlock {
       if (property.description) {
         propertyCode.unshift([
           '  /**',
-          `   * ${property.description}`,
+          ...property.description.trim().split(newLineChar).map((line) => {
+            return '   ' + `* ${line}`.trim();
+          }),
           '   */',
         ].join(newLineChar));
       }
