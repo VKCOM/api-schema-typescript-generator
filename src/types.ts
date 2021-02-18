@@ -30,7 +30,16 @@ export interface JSONSchemaMethodParameter extends JSONSchemaPropertyInterface {
   required?: boolean;
 }
 
-export interface JSONSchemaMethodInterface {
+export interface JSONSchemaMethodsDefinitionsInterface {
+  $schema: string;
+  version: string;
+  title: string;
+  description: string;
+  termsOfService: string;
+  methods: JSONSchemaMethodInfoInterface[];
+}
+
+export interface JSONSchemaMethodInfoInterface {
   name: string;
   description?: string;
   access_token_type?: string[];

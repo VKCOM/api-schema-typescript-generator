@@ -56,13 +56,13 @@ export async function main() {
 
   // Read and check required schema files
 
-  let methodsList: any;
+  let methodsDefinitions: any;
   let objectsDefinitions: any;
   let responsesDefinitions: any;
 
   try {
-    methodsList = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'methods.json'), 'utf-8')).methods;
-    if (!Array.isArray(methodsList) || !methodsList.length) {
+    methodsDefinitions = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'methods.json'), 'utf-8'));
+    if (!methodsDefinitions || !Array.isArray(methodsDefinitions.methods) || !methodsDefinitions.methods.length) {
       consoleLogErrorAndExit(`${chalk.greenBright('methods.json')} file is empty.`);
       return;
     }
@@ -98,7 +98,7 @@ export async function main() {
   const generator = new APITypingsGenerator({
     needEmit,
     outDirPath: outDir,
-    methods: methodsList,
+    methodsDefinitions,
     objects: objectsDefinitions,
     responses: responsesDefinitions,
     methodsPattern: methods.join(','),

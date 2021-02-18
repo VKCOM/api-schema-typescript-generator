@@ -1,5 +1,11 @@
 import { consoleLogErrorAndExit, consoleLogInfo } from '../cli';
-import { Dictionary, JSONSchemaMethodInterface, ObjectType, RefsDictionary } from '../types';
+import {
+  Dictionary,
+  JSONSchemaMethodInfoInterface,
+  JSONSchemaMethodsDefinitionsInterface,
+  ObjectType,
+  RefsDictionary,
+} from '../types';
 import { SchemaObject } from './SchemaObject';
 import {
   createImportsBlock,
@@ -15,7 +21,7 @@ import {
   baseAPIParamsInterfaceName,
   baseBoolIntRef,
   baseOkResponseRef,
-  basePropertyExistsRef,
+  basePropertyExistsRef, DEFAULT_API_VERSION,
   newLineChar,
 } from '../constants';
 import path from 'path';
@@ -36,7 +42,7 @@ interface APITypingsGeneratorOptions {
    */
   methodsPattern: string;
 
-  methods: JSONSchemaMethodInterface[];
+  methodsDefinitions: JSONSchemaMethodsDefinitionsInterface;
   objects: Dictionary<SchemaObject>;
   responses: Dictionary<SchemaObject>;
 }
@@ -47,7 +53,8 @@ export class APITypingsGenerator {
     this.outDirPath = options.outDirPath;
     this.methodsPattern = prepareMethodsPattern(options.methodsPattern);
 
-    this.methods = options.methods;
+    this.methodsDefinitions = options.methodsDefinitions;
+    this.methodsList = options.methodsDefinitions.methods;
     this.objects = this.convertJSONSchemaDictionary(options.objects);
     this.responses = this.convertJSONSchemaDictionary(options.responses);
 
@@ -70,7 +77,8 @@ export class APITypingsGenerator {
   outDirPath!: APITypingsGeneratorOptions['outDirPath'];
   methodsPattern!: Dictionary<boolean>;
 
-  methods!: APITypingsGeneratorOptions['methods'];
+  methodsDefinitions!: JSONSchemaMethodsDefinitionsInterface;
+  methodsList!: JSONSchemaMethodsDefinitionsInterface['methods'];
   objects!: Dictionary<SchemaObject>;
   responses!: Dictionary<SchemaObject>;
 
@@ -365,7 +373,7 @@ export class APITypingsGenerator {
     });
   }
 
-  private generateMethodParams(methodInfo: JSONSchemaMethodInterface) {
+  private generateMethodParams(methodInfo: JSONSchemaMethodInfoInterface) {
     const section = getMethodSection(methodInfo.name);
     const interfaceName = `${methodInfo.name} params`;
 
@@ -620,7 +628,7 @@ export class APITypingsGenerator {
     this.generateObjectsFromImports(imports);
   }
 
-  private generateMethodParamsAndResponses(methodInfo: JSONSchemaMethodInterface) {
+  private generateMethodParamsAndResponses(methodInfo: JSONSchemaMethodInfoInterface) {
     const { name } = methodInfo;
     const section = getMethodSection(name);
 
@@ -659,7 +667,7 @@ export class APITypingsGenerator {
   private generateMethods() {
     consoleLogInfo('creating method params and responses...');
 
-    this.methods.forEach((methodInfo) => {
+    this.methodsList.forEach((methodInfo) => {
       if (isMethodNeeded(this.methodsPattern, methodInfo.name)) {
         this.generateMethodParamsAndResponses(methodInfo);
       }
@@ -684,6 +692,9 @@ export class APITypingsGenerator {
   private createCommonTypes() {
     consoleLogInfo('creating common types...');
     const code: string[] = [];
+
+    const apiVersion = this.methodsDefinitions.version || DEFAULT_API_VERSION;
+    code.push(`export const API_VERSION = '${apiVersion}'`);
 
     code.push('export type ValueOf<T> = T[keyof T];');
 
@@ -715,6 +726,7 @@ export class APITypingsGenerator {
       }).toString(),
     );
 
+    this.registerExport('./common/common', 'API_VERSION');
     this.registerExport('./common/common', getInterfaceName(baseAPIParamsInterfaceName));
     this.registerResultFile(path.join('common', 'common.ts'), code.join(newLineChar.repeat(2)));
   }
