@@ -2,11 +2,12 @@ import { BaseCodeBlock } from './BaseCodeBlock';
 import { newLineChar } from '../constants';
 import { areQuotesNeededForProperty } from '../helpers';
 import { consoleLogErrorAndExit } from '../cli';
-import { quoteJavaScriptValue, trimStringDoubleSpaces } from '../utils';
+import { quoteJavaScriptValue, trimArray, trimStringDoubleSpaces } from '../utils';
 
 export enum TypeScriptCodeTypes {
   Interface = 'interface',
   Enum = 'enum',
+  ConstantObject = 'constant_object',
   Type = 'type',
 }
 
@@ -73,6 +74,10 @@ export class TypeCodeBlock extends BaseCodeBlock {
           divider = property.isRequired ? ':' : '?:';
           lineEnd = ';';
           break;
+        case TypeScriptCodeTypes.ConstantObject:
+          divider = ':';
+          lineEnd = ',';
+          break;
         case TypeScriptCodeTypes.Enum:
           divider = ' =';
           lineEnd = ',';
@@ -84,10 +89,11 @@ export class TypeCodeBlock extends BaseCodeBlock {
         `  ${quoteChar}${property.name}${quoteChar}${divider} ${value}${lineEnd}`,
       ];
 
-      if (property.description) {
+      const propertyDescriptionLines = trimArray((property.description || '').trim().split(newLineChar));
+      if (propertyDescriptionLines.length) {
         propertyCode.unshift([
           '  /**',
-          ...property.description.trim().split(newLineChar).map((line) => {
+          ...propertyDescriptionLines.map((line) => {
             return '   ' + `* ${line}`.trim();
           }),
           '   */',
@@ -148,6 +154,14 @@ export class TypeCodeBlock extends BaseCodeBlock {
           trimStringDoubleSpaces(`${exportKeyword} enum ${this.interfaceName} {`),
           propertiesCode,
           '}',
+        ].join(newLineChar);
+        break;
+
+      case TypeScriptCodeTypes.ConstantObject:
+        code = [
+          trimStringDoubleSpaces(`${exportKeyword} const ${this.interfaceName} = {`),
+          propertiesCode,
+          '} as const;',
         ].join(newLineChar);
         break;
 

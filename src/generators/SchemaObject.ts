@@ -3,7 +3,7 @@ import { Dictionary } from '../types';
 import {
   baseBoolIntRef,
   baseOkResponseRef,
-  basePropertyExistsRef,
+  basePropertyExistsRef, newLineChar,
   primitiveTypes,
   PropertyType,
   scalarTypes,
@@ -171,6 +171,64 @@ export class SchemaObject {
     }
   }
 
+  public createEnumInline(objectParentName: string): GeneratorResultInterface {
+    let { enumNames } = this;
+
+    const needEnumNamesDescription = !!enumNames;
+
+    if (!enumNames) {
+      const canUseEnumNames = !this.enum.some((value) => !!+value);
+      if (canUseEnumNames) {
+        enumNames = [...this.enum];
+      }
+    }
+
+    const codeBlocks: CodeBlocksArray = [];
+    let descriptionLines: string[] = [];
+
+    if (enumNames) {
+      const enumName = objectParentName ? `${objectParentName} ${this.name} enumNames` : this.name;
+      const enumInterfaceName = getInterfaceName(enumName);
+
+      const codeBlock = new TypeCodeBlock({
+        type: TypeScriptCodeTypes.ConstantObject,
+        refName: enumName,
+        interfaceName: enumInterfaceName,
+        needExport: true,
+        properties: [],
+      });
+
+      if (needEnumNamesDescription) {
+        descriptionLines.push('');
+      }
+
+      enumNames.forEach((name, index) => {
+        const value = this.enum[index];
+
+        codeBlock.addProperty({
+          name: getEnumPropertyName(name.toString()),
+          value,
+          wrapValue: true,
+        });
+
+        if (needEnumNamesDescription) {
+          descriptionLines.push(`\`${value}\` — ${name}`);
+        }
+      });
+
+      codeBlocks.push(codeBlock);
+    }
+
+    const values = this.enum.map((value) => quoteJavaScriptValue(value));
+
+    return {
+      codeBlocks,
+      imports: {},
+      value: joinOneOfValues(values, true),
+      description: descriptionLines.join(newLineChar),
+    };
+  }
+
   public getTypeString(
     objects: Dictionary<SchemaObject>,
     options: SchemaObjectToTypeOptions = {},
@@ -180,6 +238,7 @@ export class SchemaObject {
     let codeBlocks: CodeBlocksArray = [];
     let typeString = 'any /* default type */';
     let imports: Dictionary<boolean> = {};
+    let description: string | undefined = '';
 
     if (this.oneOf) {
       const values = this.oneOf.map((oneOfObject) => {
@@ -236,9 +295,15 @@ export class SchemaObject {
       }
 
       if (this.enum) {
-        const { value, codeBlocks: newCodeBlocks } = this.createEnum(this.parentObjectName, options.inlineEnum);
+        const {
+          value,
+          codeBlocks: newCodeBlocks,
+          description: newDescription,
+        } = options.inlineEnum ? this.createEnum(this.parentObjectName, options.inlineEnum) : this.createEnumInline(this.parentObjectName);
+
         typeString = value;
         codeBlocks = newCodeBlocks;
+        description = newDescription;
       }
     } else if (this.ref) {
       const refName = getObjectNameByRef(this.ref);
@@ -285,6 +350,7 @@ export class SchemaObject {
       codeBlocks,
       imports,
       value: typeString,
+      description,
     };
   }
 }
