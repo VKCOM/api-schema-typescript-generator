@@ -1,6 +1,8 @@
 import { EOL } from 'os';
 import { Dictionary } from './types';
 
+export const DEFAULT_API_VERSION = '5.130';
+
 export const PropertyType = {
   INTEGER: 'integer',
   BOOLEAN: 'boolean',
