@@ -56,7 +56,7 @@ export function quoteJavaScriptValue(value: string | number) {
 }
 
 /**
- * Removes empty string array elements from start and end of array and returns the new array
+ * Removes empty string array elements from start and end of array, trim array elements and returns the new array
  *
  * @example trimArray(['', 'First', '', 'Second', '', '']) => ['First', '', 'Second']
  */

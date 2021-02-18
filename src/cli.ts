@@ -1,7 +1,7 @@
 import arg from 'arg';
 import { inspect } from 'util';
 import chalk from 'chalk';
-import { isString } from './utils';
+import { isString, trimArray } from './utils';
 
 export function parseArguments() {
   const args = arg(
@@ -25,7 +25,7 @@ export function parseArguments() {
     help: args['--help'] || false,
     schemaDir: isString(schemaDir) ? schemaDir.trim() : null,
     outDir: isString(outDir) ? outDir.trim() : null,
-    methods: args['--methods'] || [],
+    methods: trimArray(args['--methods'] || []),
   };
 }
 
