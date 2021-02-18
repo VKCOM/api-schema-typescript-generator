@@ -239,6 +239,7 @@ export class APITypingsGenerator {
         imports: newImports,
         value,
         codeBlocks: newCodeBlocks,
+        description,
       } = property.getTypeString(this.objects);
 
       imports = { ...imports, ...newImports };
@@ -246,7 +247,7 @@ export class APITypingsGenerator {
 
       codeBlock.addProperty({
         name: property.name,
-        description: property.description,
+        description: [property.description, description].join(newLineChar),
         value,
         isRequired: isPatternProperty(property.name) || requiredProperties[property.name],
       });

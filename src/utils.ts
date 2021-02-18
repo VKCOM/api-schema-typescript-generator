@@ -54,3 +54,22 @@ export function trimStringDoubleSpaces(string: string): string {
 export function quoteJavaScriptValue(value: string | number) {
   return isString(value) ? `'${value}'` : value;
 }
+
+/**
+ * Removes empty string array elements from start and end of array and returns the new array
+ *
+ * @example trimArray(['', 'First', '', 'Second', '', '']) => ['First', '', 'Second']
+ */
+export function trimArray(array: string[]): string[] {
+  let trimmedArray = array.map((v) => v.trim());
+
+  while (trimmedArray[0] === '') {
+    trimmedArray.shift();
+  }
+
+  while (trimmedArray[trimmedArray.length - 1] === '') {
+    trimmedArray.pop();
+  }
+
+  return trimmedArray;
+}

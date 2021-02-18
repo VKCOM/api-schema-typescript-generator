@@ -12,4 +12,5 @@ export interface GeneratorResultInterface {
   codeBlocks: CodeBlocksArray;
   imports: Dictionary<boolean>;
   value: string;
+  description?: string;
 }
