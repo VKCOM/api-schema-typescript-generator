@@ -11,7 +11,8 @@
     }
   },
   "globals": {
-    "Element": true
+    "Element": true,
+    "Promise": true
   },
   "env": {
     "browser": true,
