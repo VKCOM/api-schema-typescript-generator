@@ -1,4 +1,3 @@
-import { consoleLogErrorAndExit, consoleLogInfo } from '../cli';
 import {
   Dictionary,
   JSONSchemaMethodInfoInterface,
@@ -26,6 +25,7 @@ import {
 } from '../constants';
 import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
+import { consoleLogErrorAndExit, consoleLogInfo } from '../log';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;

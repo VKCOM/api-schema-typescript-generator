@@ -1,7 +1,7 @@
 import { BaseCodeBlock } from './BaseCodeBlock';
 import { newLineChar } from '../constants';
 import { areQuotesNeededForProperty } from '../helpers';
-import { consoleLogErrorAndExit } from '../cli';
+import { consoleLogErrorAndExit } from '../log';
 import { quoteJavaScriptValue, trimArray, trimStringDoubleSpaces } from '../utils';
 
 export enum TypeScriptCodeTypes {

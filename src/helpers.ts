@@ -4,7 +4,7 @@ import path from 'path';
 import { capitalizeFirstLetter, sortArrayAlphabetically, uniqueArray } from './utils';
 import { newLineChar, primitiveTypes, spaceChar } from './constants';
 import { Dictionary, ObjectType } from './types';
-import { consoleLogErrorAndExit } from './cli';
+import { consoleLogErrorAndExit } from './log';
 
 export async function readJSONFile(path: string): Promise<any> {
   const content = await fsPromises.readFile(path, 'utf-8');

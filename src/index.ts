@@ -1,7 +1,8 @@
 import path from 'path';
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
-import { consoleLog, consoleLogErrorAndExit, consoleLogInfo, parseArguments } from './cli';
+import { parseArguments } from './cli';
+import { consoleLog, consoleLogErrorAndExit, consoleLogInfo } from './log';
 import { APITypingsGenerator } from './generators/APITypingsGenerator';
 import { readJSONFile } from './helpers';
 
