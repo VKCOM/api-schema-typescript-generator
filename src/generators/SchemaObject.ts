@@ -17,7 +17,7 @@ import {
   joinOneOfValues, resolvePrimitiveTypesArray,
   transformPatternPropertyName,
 } from '../helpers';
-import { consoleLogErrorAndExit } from '../cli';
+import { consoleLogErrorAndExit } from '../log';
 
 export interface SchemaObjectToTypeOptions {
   /**

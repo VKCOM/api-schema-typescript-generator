@@ -1,9 +1,10 @@
-import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
-import { consoleLog, consoleLogErrorAndExit, consoleLogInfo, parseArguments } from './cli';
+import { parseArguments } from './cli';
+import { consoleLog, consoleLogErrorAndExit, consoleLogInfo } from './log';
 import { APITypingsGenerator } from './generators/APITypingsGenerator';
+import { readJSONFile } from './helpers';
 
 const helpMessage = `
   Options:
@@ -56,40 +57,29 @@ export async function main() {
 
   // Read and check required schema files
 
-  let methodsDefinitions: any;
-  let objectsDefinitions: any;
-  let responsesDefinitions: any;
+  const [
+    methodsDefinitions,
+    { definitions: responsesDefinitions },
+    { definitions: objectsDefinitions },
+  ] = await Promise.all([
+    readJSONFile(path.resolve(schemaDir, 'methods.json')),
+    readJSONFile(path.resolve(schemaDir, 'responses.json')),
+    readJSONFile(path.resolve(schemaDir, 'objects.json')),
+    readJSONFile(path.resolve(schemaDir, 'errors.json')),
+  ]);
 
-  try {
-    methodsDefinitions = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'methods.json'), 'utf-8'));
-    if (!methodsDefinitions || !Array.isArray(methodsDefinitions.methods) || !methodsDefinitions.methods.length) {
-      consoleLogErrorAndExit(`${chalk.greenBright('methods.json')} file is empty.`);
-      return;
-    }
-  } catch (e) {
-    consoleLogErrorAndExit(`${chalk.greenBright('methods.json')} file is invalid.`);
-    return;
-  }
-
-  try {
-    objectsDefinitions = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'objects.json'), 'utf-8')).definitions;
-    if (!Object.keys(objectsDefinitions).length) {
-      consoleLogErrorAndExit(`${chalk.greenBright('objects.json')} file is empty.`);
-      return;
-    }
-  } catch (e) {
-    consoleLogErrorAndExit(`${chalk.greenBright('objects.json')} file is invalid.`);
-    return;
-  }
-
-  try {
-    responsesDefinitions = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'responses.json'), 'utf-8')).definitions;
-    if (!Object.keys(responsesDefinitions).length) {
-      consoleLogErrorAndExit(`${chalk.greenBright('responses.json')} file is empty.`);
-      return;
-    }
-  } catch (e) {
+  if (!Object.keys(methodsDefinitions).length) {
     consoleLogErrorAndExit(`${chalk.greenBright('responses.json')} file is invalid.`);
+    return;
+  }
+
+  if (!Object.keys(responsesDefinitions).length) {
+    consoleLogErrorAndExit(`${chalk.greenBright('responses.json')} file is invalid.`);
+    return;
+  }
+
+  if (!Object.keys(objectsDefinitions).length) {
+    consoleLogErrorAndExit(`${chalk.greenBright('objects.json')} file is invalid.`);
     return;
   }
 
