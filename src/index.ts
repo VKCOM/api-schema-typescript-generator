@@ -1,9 +1,9 @@
-import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
 import { consoleLog, consoleLogErrorAndExit, consoleLogInfo, parseArguments } from './cli';
 import { APITypingsGenerator } from './generators/APITypingsGenerator';
+import { readJSONFile } from './helpers';
 
 const helpMessage = `
   Options:
@@ -61,7 +61,7 @@ export async function main() {
   let responsesDefinitions: any;
 
   try {
-    methodsDefinitions = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'methods.json'), 'utf-8'));
+    methodsDefinitions = await readJSONFile(path.resolve(schemaDir, 'methods.json'));
     if (!methodsDefinitions || !Array.isArray(methodsDefinitions.methods) || !methodsDefinitions.methods.length) {
       consoleLogErrorAndExit(`${chalk.greenBright('methods.json')} file is empty.`);
       return;
@@ -72,7 +72,7 @@ export async function main() {
   }
 
   try {
-    objectsDefinitions = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'objects.json'), 'utf-8')).definitions;
+    objectsDefinitions = (await readJSONFile(path.resolve(schemaDir, 'objects.json'))).definitions;
     if (!Object.keys(objectsDefinitions).length) {
       consoleLogErrorAndExit(`${chalk.greenBright('objects.json')} file is empty.`);
       return;
@@ -83,7 +83,7 @@ export async function main() {
   }
 
   try {
-    responsesDefinitions = JSON.parse(fs.readFileSync(path.resolve(schemaDir, 'responses.json'), 'utf-8')).definitions;
+    responsesDefinitions = (await readJSONFile(path.resolve(schemaDir, 'responses.json'))).definitions;
     if (!Object.keys(responsesDefinitions).length) {
       consoleLogErrorAndExit(`${chalk.greenBright('responses.json')} file is empty.`);
       return;
