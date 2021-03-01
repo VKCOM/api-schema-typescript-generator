@@ -29,7 +29,7 @@ export interface SchemaObjectToTypeOptions {
 export class SchemaObject {
   constructor(name: string, object: any, parentName?: string) {
     if (!isObject(object)) {
-      consoleLogErrorAndExit(`"${name}" is not an object.`);
+      consoleLogErrorAndExit(`[SchemaObject] "${name}" is not an object.`, { name, object, parentName });
       return;
     }
 
