@@ -25,7 +25,7 @@ import {
 } from '../constants';
 import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
-import { consoleLogErrorAndExit, consoleLogInfo } from '../log';
+import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;
@@ -537,7 +537,7 @@ export class APITypingsGenerator {
 
   private getResponseCodeBlock(object: SchemaObject): GeneratorResultInterface | false {
     if (!object.ref) {
-      consoleLogErrorAndExit(`"${object.name}" has no ref`);
+      consoleLogError(`response schema object "${object.name}" has no ref`, object);
       return false;
     }
 
