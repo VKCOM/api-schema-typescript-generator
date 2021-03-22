@@ -1,5 +1,4 @@
-import fs from 'fs';
-import fsPromises from 'fs/promises';
+import fs, { promises as fsPromises } from 'fs';
 import path from 'path';
 import { capitalizeFirstLetter, sortArrayAlphabetically, uniqueArray } from './utils';
 import { newLineChar, primitiveTypes, spaceChar } from './constants';
