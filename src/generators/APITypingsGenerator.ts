@@ -26,6 +26,7 @@ import {
 import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
 import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
+import { generateStandaloneEnum } from '../generator';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;
@@ -277,7 +278,7 @@ export class APITypingsGenerator {
     }
 
     if (object.enum) {
-      const { codeBlocks } = object.createEnum();
+      const { codeBlocks } = generateStandaloneEnum(object);
 
       return {
         codeBlocks: codeBlocks,
@@ -434,7 +435,7 @@ export class APITypingsGenerator {
         imports: newImports,
         value,
         codeBlocks: newCodeBlocks,
-      } = property.getTypeString(this.objects, { inlineEnum: true });
+      } = property.getTypeString(this.objects, { skipEnumNamesConstant: true });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -468,7 +469,7 @@ export class APITypingsGenerator {
     let imports: Dictionary<boolean> = {};
 
     if (object.enum) {
-      const { codeBlocks: newCodeBlocks } = object.createEnum();
+      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(object);
       codeBlocks = [
         ...newCodeBlocks,
       ];
@@ -504,7 +505,7 @@ export class APITypingsGenerator {
     let imports: Dictionary<boolean> = {};
 
     if (response.enum) {
-      const { codeBlocks: newCodeBlocks } = response.createEnum();
+      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(response);
       codeBlocks = [
         ...newCodeBlocks,
       ];
