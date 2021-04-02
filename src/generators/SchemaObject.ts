@@ -171,7 +171,12 @@ export class SchemaObject {
     }
   }
 
-  public createEnumInline(objectParentName: string): GeneratorResultInterface {
+  public createEnumInline(
+    objectParentName: string,
+    options: {
+      skipEnumNamesConstant?: boolean;
+    },
+  ): GeneratorResultInterface {
     let { enumNames } = this;
 
     const needEnumNamesDescription = !!enumNames;
@@ -216,7 +221,12 @@ export class SchemaObject {
         }
       });
 
-      codeBlocks.push(codeBlock);
+      if (!options.skipEnumNamesConstant) {
+        descriptionLines.push('');
+        descriptionLines.push(`@see ${enumInterfaceName}`);
+
+        codeBlocks.push(codeBlock);
+      }
     }
 
     const values = this.enum.map((value) => quoteJavaScriptValue(value));
@@ -299,7 +309,7 @@ export class SchemaObject {
           value,
           codeBlocks: newCodeBlocks,
           description: newDescription,
-        } = options.inlineEnum ? this.createEnum(this.parentObjectName, options.inlineEnum) : this.createEnumInline(this.parentObjectName);
+        } = options.inlineEnum ? this.createEnum(this.parentObjectName, options.inlineEnum) : this.createEnumInline(this.parentObjectName, {});
 
         typeString = value;
         codeBlocks = newCodeBlocks;
