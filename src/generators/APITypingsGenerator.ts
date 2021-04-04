@@ -82,7 +82,7 @@ export class APITypingsGenerator {
   objects!: Dictionary<SchemaObject>;
   responses!: Dictionary<SchemaObject>;
 
-  visitedRefs!: RefsDictionary;
+  visitedRefs!: Record<string, true>;
   generatedObjects!: Dictionary<boolean>;
 
   methodFilesMap!: Dictionary<Omit<GeneratorResultInterface, 'value'>>;
@@ -289,6 +289,17 @@ export class APITypingsGenerator {
     }
   }
 
+  private generateObjectFromRef(ref: string) {
+    const refName = getObjectNameByRef(ref);
+    const refObject = this.objects[refName];
+    if (!refObject) {
+      consoleLogInfo(`object "${ref}" ref is not found`);
+      return;
+    }
+
+    this.generateObject(refObject);
+  }
+
   private generateObject(object: SchemaObject) {
     if (this.generatedObjects[object.name]) {
       return;
@@ -344,32 +355,12 @@ export class APITypingsGenerator {
       }
     });
 
-    this.generateObjectsFromImports(imports);
+    this.generateObjectsFromRefs(imports);
   }
 
   private generateObjectsFromRefs(refs: RefsDictionary): void {
     Object.keys(refs).forEach((ref) => {
-      const refName = getObjectNameByRef(ref);
-      const refObject = this.objects[refName];
-      if (!refObject) {
-        consoleLogInfo(`"${ref}" ref is not found`);
-        return;
-      }
-
-      this.generateObject(refObject);
-    });
-  }
-
-  private generateObjectsFromImports(imports: Dictionary<boolean>) {
-    Object.keys(imports).forEach((ref) => {
-      const refName = getObjectNameByRef(ref);
-      const refObject = this.objects[refName];
-      if (!refObject) {
-        consoleLogInfo(`"${ref}" ref is not found`);
-        return;
-      }
-
-      this.generateObject(refObject);
+      this.generateObjectFromRef(ref);
     });
   }
 
@@ -406,9 +397,7 @@ export class APITypingsGenerator {
 
         if (paramRaw.items) {
           if (paramRaw.items.$ref) {
-            this.generateObjectsFromRefs({
-              [paramRaw.items.$ref]: true,
-            });
+            this.generateObjectFromRef(paramRaw.items.$ref);
 
             paramRaw.description += newLineChar.repeat(2) + paramRaw.items.$ref;
           }
@@ -448,7 +437,7 @@ export class APITypingsGenerator {
     });
 
     this.appendToFileMap(section, imports, [...codeBlocks, codeBlock]);
-    this.generateObjectsFromImports(imports);
+    this.generateObjectsFromRefs(imports);
   }
 
   private getResponseObjectRef(object: SchemaObject): SchemaObject | undefined {
@@ -541,7 +530,7 @@ export class APITypingsGenerator {
       return false;
     }
 
-    const nonBuildableRefs: RefsDictionary = {
+    const nonBuildableRefs: Record<string, true> = {
       [baseBoolIntRef]: true,
       [baseOkResponseRef]: true,
       [basePropertyExistsRef]: true,
@@ -625,7 +614,7 @@ export class APITypingsGenerator {
     const { codeBlocks, imports } = result;
 
     this.appendToFileMap(section, imports, codeBlocks);
-    this.generateObjectsFromImports(imports);
+    this.generateObjectsFromRefs(imports);
   }
 
   private generateMethodParamsAndResponses(methodInfo: JSONSchemaMethodInfoInterface) {

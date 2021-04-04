@@ -2,7 +2,12 @@ export interface Dictionary<T> {
   [key: string]: T;
 }
 
-export type RefsDictionary = Record<string, true>;
+export enum RefsDictionaryType {
+  NeedImport,
+  JustGenerate,
+}
+
+export type RefsDictionary = Record<string, RefsDictionaryType>;
 
 export enum ObjectType {
   Object = 'object',

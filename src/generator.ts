@@ -4,13 +4,15 @@ import { getEnumPropertyName, getInterfaceName, getSectionFromObjectName, joinOn
 import { TypeCodeBlock, TypeScriptCodeTypes } from './generators/TypeCodeBlock';
 import { quoteJavaScriptValue, sortArrayAlphabetically, uniqueArray } from './utils';
 import { newLineChar } from './constants';
-import { Dictionary, ObjectType, RefsDictionary } from './types';
+import { Dictionary, ObjectType, RefsDictionary, RefsDictionaryType } from './types';
 
-export function generateImportsBlock(imports: RefsDictionary, section: string | null, type?: ObjectType): string {
-  const objectsToImport = uniqueArray(Object.keys(imports));
+export function generateImportsBlock(refs: RefsDictionary, section: string | null, type?: ObjectType): string {
+  let importRefs = Object.entries(refs).filter(([, type]) => type === RefsDictionaryType.NeedImport).map(([key]) => key);
+  importRefs = uniqueArray(importRefs);
+
   const paths: Dictionary<string[]> = {};
 
-  objectsToImport.forEach((objectName) => {
+  importRefs.forEach((objectName) => {
     const importSection = getSectionFromObjectName(objectName);
     const interfaceName = getInterfaceName(objectName);
     let path;

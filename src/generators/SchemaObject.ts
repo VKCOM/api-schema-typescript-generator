@@ -1,5 +1,5 @@
 import { isObject, isString } from '../utils';
-import { Dictionary, RefsDictionary } from '../types';
+import { Dictionary, RefsDictionary, RefsDictionaryType } from '../types';
 import {
   baseBoolIntRef,
   baseOkResponseRef,
@@ -12,7 +12,8 @@ import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
 import {
   getInterfaceName,
   getObjectNameByRef,
-  joinOneOfValues, resolvePrimitiveTypesArray,
+  joinOneOfValues,
+  resolvePrimitiveTypesArray,
   transformPatternPropertyName,
 } from '../helpers';
 import { consoleLogErrorAndExit } from '../log';
@@ -169,7 +170,7 @@ export class SchemaObject {
           consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
         }
 
-        imports[refName] = true;
+        imports[refName] = RefsDictionaryType.NeedImport;
         typeString = getInterfaceName(refName) + '[]'.repeat(depth);
       }
     } else if (this.type) {
@@ -222,7 +223,7 @@ export class SchemaObject {
           }
 
           if (refObject.enum) {
-            imports[refName] = true;
+            imports[refName] = RefsDictionaryType.NeedImport;
             typeString = getInterfaceName(refName);
           } else if (refObject.oneOf) {
             const values = refObject.oneOf.map((oneOfObject) => {
@@ -235,7 +236,7 @@ export class SchemaObject {
           } else if (isString(refObject.type) && scalarTypes[refObject.type] && !refObject.ref) {
             typeString = scalarTypes[refObject.type];
           } else {
-            imports[refName] = true;
+            imports[refName] = RefsDictionaryType.NeedImport;
             typeString = getInterfaceName(refName);
           }
         }
