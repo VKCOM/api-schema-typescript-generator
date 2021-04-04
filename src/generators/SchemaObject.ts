@@ -1,5 +1,5 @@
 import { isObject, isString } from '../utils';
-import { Dictionary } from '../types';
+import { Dictionary, RefsDictionary } from '../types';
 import {
   baseBoolIntRef,
   baseOkResponseRef,
@@ -130,7 +130,7 @@ export class SchemaObject {
 
     let codeBlocks: CodeBlocksArray = [];
     let typeString = 'any /* default type */';
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
     let description: string | undefined = '';
 
     if (this.oneOf) {

@@ -2,7 +2,7 @@ import fs, { promises as fsPromises } from 'fs';
 import path from 'path';
 import { capitalizeFirstLetter, sortArrayAlphabetically, uniqueArray } from './utils';
 import { newLineChar, primitiveTypes, spaceChar } from './constants';
-import { Dictionary, ObjectType } from './types';
+import { Dictionary, ObjectType, RefsDictionary } from './types';
 import { consoleLogErrorAndExit } from './log';
 
 export async function readJSONFile(path: string): Promise<any> {
@@ -136,7 +136,7 @@ export function joinOneOfValues(values: Array<string | number>, primitive?: bool
   }
 }
 
-export function createImportsBlock(imports: Dictionary<boolean>, section: string | null, type?: ObjectType) {
+export function createImportsBlock(imports: RefsDictionary, section: string | null, type?: ObjectType) {
   const objectsToImport = uniqueArray(Object.keys(imports));
   const paths: Dictionary<string[]> = {};
 
