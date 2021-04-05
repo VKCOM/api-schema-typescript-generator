@@ -1,8 +1,8 @@
 import fs, { promises as fsPromises } from 'fs';
 import path from 'path';
-import { capitalizeFirstLetter, sortArrayAlphabetically, uniqueArray } from './utils';
+import { capitalizeFirstLetter } from './utils';
 import { newLineChar, primitiveTypes, spaceChar } from './constants';
-import { Dictionary, ObjectType } from './types';
+import { Dictionary } from './types';
 import { consoleLogErrorAndExit } from './log';
 
 export async function readJSONFile(path: string): Promise<any> {
@@ -134,41 +134,6 @@ export function joinOneOfValues(values: Array<string | number>, primitive?: bool
   } else {
     return joined;
   }
-}
-
-export function createImportsBlock(imports: Dictionary<boolean>, section: string | null, type?: ObjectType) {
-  const objectsToImport = uniqueArray(Object.keys(imports));
-  const paths: Dictionary<string[]> = {};
-
-  objectsToImport.forEach((objectName) => {
-    const importSection = getSectionFromObjectName(objectName);
-    const interfaceName = getInterfaceName(objectName);
-    let path;
-
-    if (type === ObjectType.Object) {
-      if (section === importSection) {
-        path = `./${interfaceName}`;
-      } else {
-        path = `../${importSection}/${interfaceName}`;
-      }
-    } else {
-      path = `../objects/${importSection}/${interfaceName}`;
-    }
-
-    if (!paths[path]) {
-      paths[path] = [];
-    }
-    paths[path].push(interfaceName);
-  });
-
-  const importLines: string[] = [];
-
-  sortArrayAlphabetically(Object.keys(paths)).forEach((path) => {
-    const interfaces = sortArrayAlphabetically(paths[path]).join(', ');
-    importLines.push(`import { ${interfaces} } from '${path}';`);
-  });
-
-  return importLines.join(newLineChar);
 }
 
 export function resolvePrimitiveTypesArray(types: string[]): string | null {

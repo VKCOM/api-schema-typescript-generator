@@ -7,7 +7,6 @@ import {
 } from '../types';
 import { SchemaObject } from './SchemaObject';
 import {
-  createImportsBlock,
   getInterfaceName, getMethodSection, getObjectNameByRef,
   getSectionFromObjectName, isMethodNeeded, isPatternProperty, prepareBuildDirectory,
   prepareMethodsPattern,
@@ -26,6 +25,7 @@ import {
 import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
 import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
+import { generateImportsBlock } from '../generator';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;
@@ -331,7 +331,7 @@ export class APITypingsGenerator {
     const section = getSectionFromObjectName(object.name);
 
     delete imports[object.name];
-    stringCodeBlocks.unshift(createImportsBlock(imports, section, ObjectType.Object));
+    stringCodeBlocks.unshift(generateImportsBlock(imports, section, ObjectType.Object));
 
     if (stringCodeBlocks.length > 0) {
       const code = stringCodeBlocks.join(newLineChar.repeat(2));
@@ -681,7 +681,7 @@ export class APITypingsGenerator {
         }
       });
       const code = [
-        createImportsBlock(imports, null),
+        generateImportsBlock(imports, null),
         ...codeBlocks,
       ];
 
