@@ -1,29 +1,28 @@
-import { isObject, isString, quoteJavaScriptValue } from '../utils';
+import { isObject, isString } from '../utils';
 import { Dictionary } from '../types';
 import {
   baseBoolIntRef,
   baseOkResponseRef,
-  basePropertyExistsRef, newLineChar,
+  basePropertyExistsRef,
   primitiveTypes,
   PropertyType,
   scalarTypes,
 } from '../constants';
-import { TypeCodeBlock, TypeScriptCodeTypes } from './TypeCodeBlock';
 import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
 import {
-  getEnumPropertyName,
   getInterfaceName,
   getObjectNameByRef,
   joinOneOfValues, resolvePrimitiveTypesArray,
   transformPatternPropertyName,
 } from '../helpers';
 import { consoleLogErrorAndExit } from '../log';
+import { generateInlineEnum } from '../generator';
 
 export interface SchemaObjectToTypeOptions {
   /**
    * Determines whether enums will be inline to type value or them will be as separate interface block
    */
-  inlineEnum?: boolean;
+  skipEnumNamesConstant?: boolean;
 }
 
 export class SchemaObject {
@@ -123,112 +122,6 @@ export class SchemaObject {
     }
   }
 
-  public createEnum(objectParentName?: string, forceInline?: boolean): GeneratorResultInterface {
-    let { enumNames } = this;
-
-    if (!enumNames) {
-      const canUseEnumNames = !this.enum.some((value) => !!+value);
-      if (canUseEnumNames) {
-        enumNames = [...this.enum];
-      }
-    }
-
-    if (enumNames && !forceInline) {
-      const enumName = objectParentName ? `${objectParentName} ${this.name} enum` : this.name;
-      const enumInterfaceName = getInterfaceName(enumName);
-
-      const codeBlock = new TypeCodeBlock({
-        type: TypeScriptCodeTypes.Enum,
-        refName: enumName,
-        interfaceName: enumInterfaceName,
-        needExport: true,
-        properties: [],
-      });
-
-      enumNames.forEach((name, index) => {
-        codeBlock.addProperty({
-          name: getEnumPropertyName(name.toString()),
-          value: this.enum[index],
-          wrapValue: true,
-        });
-      });
-
-      return {
-        codeBlocks: [
-          codeBlock,
-        ],
-        imports: {},
-        value: enumInterfaceName,
-      };
-    } else {
-      const values = this.enum.map((value) => quoteJavaScriptValue(value));
-
-      return {
-        codeBlocks: [],
-        imports: {},
-        value: joinOneOfValues(values, true),
-      };
-    }
-  }
-
-  public createEnumInline(objectParentName: string): GeneratorResultInterface {
-    let { enumNames } = this;
-
-    const needEnumNamesDescription = !!enumNames;
-
-    if (!enumNames) {
-      const canUseEnumNames = !this.enum.some((value) => !!+value);
-      if (canUseEnumNames) {
-        enumNames = [...this.enum];
-      }
-    }
-
-    const codeBlocks: CodeBlocksArray = [];
-    let descriptionLines: string[] = [];
-
-    if (enumNames) {
-      const enumName = objectParentName ? `${objectParentName} ${this.name} enumNames` : this.name;
-      const enumInterfaceName = getInterfaceName(enumName);
-
-      const codeBlock = new TypeCodeBlock({
-        type: TypeScriptCodeTypes.ConstantObject,
-        refName: enumName,
-        interfaceName: enumInterfaceName,
-        needExport: true,
-        properties: [],
-      });
-
-      if (needEnumNamesDescription) {
-        descriptionLines.push('');
-      }
-
-      enumNames.forEach((name, index) => {
-        const value = this.enum[index];
-
-        codeBlock.addProperty({
-          name: getEnumPropertyName(name.toString()),
-          value,
-          wrapValue: true,
-        });
-
-        if (needEnumNamesDescription) {
-          descriptionLines.push(`\`${value}\` — ${name}`);
-        }
-      });
-
-      codeBlocks.push(codeBlock);
-    }
-
-    const values = this.enum.map((value) => quoteJavaScriptValue(value));
-
-    return {
-      codeBlocks,
-      imports: {},
-      value: joinOneOfValues(values, true),
-      description: descriptionLines.join(newLineChar),
-    };
-  }
-
   public getTypeString(
     objects: Dictionary<SchemaObject>,
     options: SchemaObjectToTypeOptions = {},
@@ -299,7 +192,10 @@ export class SchemaObject {
           value,
           codeBlocks: newCodeBlocks,
           description: newDescription,
-        } = options.inlineEnum ? this.createEnum(this.parentObjectName, options.inlineEnum) : this.createEnumInline(this.parentObjectName);
+        } = generateInlineEnum(this, {
+          objectParentName: this.parentObjectName,
+          skipEnumNamesConstant: options.skipEnumNamesConstant,
+        });
 
         typeString = value;
         codeBlocks = newCodeBlocks;
