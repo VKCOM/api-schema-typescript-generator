@@ -14,7 +14,51 @@ import { isString } from '../utils';
 import { consoleLogErrorAndExit } from '../log';
 import { generateInlineEnum } from '../generator';
 
+function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptions): GeneratorResultInterface {
+  let codeBlocks: CodeBlocksArray = [];
+  let typeString = 'any /* default type */';
+  let imports: Record<string, boolean> = {};
+  let description: string | undefined = '';
+
+  if (object.enum) {
+    const {
+      value,
+      codeBlocks: newCodeBlocks,
+      description: newDescription,
+    } = generateInlineEnum(object, {
+      // TODO: Refactor
+      // section_object_name -> property_name -> items => section_object_name_property_name_items enumNames
+      objectParentName: options.objectParentName || object.parentObjectName,
+      skipEnumNamesConstant: options.skipEnumNamesConstant,
+    });
+
+    typeString = value;
+    codeBlocks = newCodeBlocks;
+    description = newDescription;
+  } else if (isString(object.type)) {
+    const primitive = primitiveTypes[object.type];
+    if (!primitive) {
+      consoleLogErrorAndExit(object.name, `Error, type "${object.type}" is not declared type`);
+    }
+
+    typeString = primitive;
+  } else if (Array.isArray(object.type)) {
+    const primitivesTypesArray = resolvePrimitiveTypesArray(object.type);
+    if (primitivesTypesArray !== null) {
+      typeString = primitivesTypesArray;
+    }
+  }
+
+  return {
+    codeBlocks,
+    imports,
+    value: typeString,
+    description,
+  };
+}
+
 interface GenerateTypeStringOptions {
+  objectParentName?: string;
   /**
    * Determines whether enums will be inline to type value or them will be as separate interface block
    */
@@ -53,14 +97,7 @@ export function generateTypeString(
       }
     }
 
-    if (isString(items.type) && primitiveTypes[items.type]) {
-      typeString = primitiveTypes[items.type] + '[]'.repeat(depth);
-    } else if (Array.isArray(items.type)) {
-      const primitivesTypesArray = resolvePrimitiveTypesArray(items.type);
-      if (primitivesTypesArray !== null) {
-        typeString = `Array<${primitivesTypesArray}>` + '[]'.repeat(depth);
-      }
-    } else if (items.ref) {
+    if (items.ref) {
       const refName = getObjectNameByRef(items.ref);
       const refObject = objects[refName];
       if (!refObject) {
@@ -69,36 +106,30 @@ export function generateTypeString(
 
       imports[refName] = true;
       typeString = getInterfaceName(refName) + '[]'.repeat(depth);
-    }
-  } else if (object.type) {
-    if (isString(object.type)) {
-      const primitive = primitiveTypes[object.type];
-      if (!primitive) {
-        consoleLogErrorAndExit(object.name, `Error, type "${object.type}" is not declared type`);
-      }
-
-      typeString = primitive;
-    } else if (Array.isArray(object.type)) {
-      const primitivesTypesArray = resolvePrimitiveTypesArray(object.type);
-      if (primitivesTypesArray !== null) {
-        typeString = primitivesTypesArray;
-      }
-    }
-
-    if (object.enum) {
+    } else {
       const {
         value,
-        codeBlocks: newCodeBlocks,
         description: newDescription,
-      } = generateInlineEnum(object, {
+        imports: newImports,
+        codeBlocks: newCodeBlocks,
+      } = generateBaseType(items, {
+        ...options,
+        // TODO: Refactor
         objectParentName: object.parentObjectName,
-        skipEnumNamesConstant: options.skipEnumNamesConstant,
       });
 
-      typeString = value;
-      codeBlocks = newCodeBlocks;
+      if (value.endsWith('\'') || value.includes('|')) {
+        typeString = `Array<${value}>` + '[]'.repeat(depth - 1); // Need decrement depth value because of Array<T> has its own depth
+      } else {
+        typeString = value + '[]'.repeat(depth);
+      }
+
       description = newDescription;
+      imports = { ...imports, ...newImports };
+      codeBlocks = [...codeBlocks, ...newCodeBlocks];
     }
+  } else if (object.type) {
+    return generateBaseType(object, options);
   } else if (object.ref) {
     const refName = getObjectNameByRef(object.ref);
 
