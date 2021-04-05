@@ -26,6 +26,7 @@ import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
 import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
 import { generateImportsBlock, generateStandaloneEnum } from '../generator';
+import { generateTypeString } from './typeString';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;
@@ -248,7 +249,7 @@ export class APITypingsGenerator {
         value,
         codeBlocks: newCodeBlocks,
         description,
-      } = property.getTypeString(this.objects);
+      } = generateTypeString(property, this.objects);
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -434,7 +435,7 @@ export class APITypingsGenerator {
         imports: newImports,
         value,
         codeBlocks: newCodeBlocks,
-      } = property.getTypeString(this.objects, { skipEnumNamesConstant: true });
+      } = generateTypeString(property, this.objects, { skipEnumNamesConstant: true });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -473,7 +474,7 @@ export class APITypingsGenerator {
         ...newCodeBlocks,
       ];
     } else {
-      const { imports: newImports, value, codeBlocks: newCodeBlocks } = object.getTypeString(this.objects);
+      const { imports: newImports, value, codeBlocks: newCodeBlocks } = generateTypeString(object, this.objects);
       const codeBlock = new TypeCodeBlock({
         type: TypeScriptCodeTypes.Type,
         refName: object.name,
@@ -509,7 +510,7 @@ export class APITypingsGenerator {
         ...newCodeBlocks,
       ];
     } else {
-      const { imports: newImports, value, codeBlocks: newCodeBlocks } = response.getTypeString(this.objects);
+      const { imports: newImports, value, codeBlocks: newCodeBlocks } = generateTypeString(response, this.objects);
       const codeBlock = new TypeCodeBlock({
         type: TypeScriptCodeTypes.Type,
         refName: object.name,
