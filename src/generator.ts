@@ -1,10 +1,18 @@
 import { SchemaObject } from './generators/SchemaObject';
 import { CodeBlocksArray, GeneratorResultInterface } from './generators/BaseCodeBlock';
-import { getEnumPropertyName, getInterfaceName, getSectionFromObjectName, joinOneOfValues } from './helpers';
+import {
+  getEnumPropertyName,
+  getInterfaceName,
+  getSectionFromObjectName,
+  joinOneOfValues,
+} from './helpers';
 import { TypeCodeBlock, TypeScriptCodeTypes } from './generators/TypeCodeBlock';
 import { quoteJavaScriptValue, sortArrayAlphabetically, uniqueArray } from './utils';
-import { newLineChar } from './constants';
+import {
+  newLineChar,
+} from './constants';
 import { Dictionary, ObjectType, RefsDictionary, RefsDictionaryType } from './types';
+export { generateTypeString } from './generators/typeString';
 
 export function generateImportsBlock(refs: RefsDictionary, section: string | null, type?: ObjectType): string {
   let importRefs = Object.entries(refs).filter(([, type]) => type === RefsDictionaryType.NeedImport).map(([key]) => key);
