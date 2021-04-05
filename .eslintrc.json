@@ -21,6 +21,7 @@
   "rules": {
     "@typescript-eslint/explicit-member-accessibility": "off",
     "@typescript-eslint/no-unnecessary-condition": "off",
-    "@typescript-eslint/no-magic-numbers": "off"
+    "@typescript-eslint/no-magic-numbers": "off",
+    "@typescript-eslint/no-extra-parens": "off"
   }
 }

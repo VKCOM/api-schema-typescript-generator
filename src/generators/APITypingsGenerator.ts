@@ -7,7 +7,6 @@ import {
 } from '../types';
 import { SchemaObject } from './SchemaObject';
 import {
-  createImportsBlock,
   getInterfaceName, getMethodSection, getObjectNameByRef,
   getSectionFromObjectName, isMethodNeeded, isPatternProperty, prepareBuildDirectory,
   prepareMethodsPattern,
@@ -26,6 +25,8 @@ import {
 import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
 import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
+import { generateImportsBlock, generateStandaloneEnum } from '../generator';
+import { generateTypeString } from './typeString';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;
@@ -248,7 +249,7 @@ export class APITypingsGenerator {
         value,
         codeBlocks: newCodeBlocks,
         description,
-      } = property.getTypeString(this.objects);
+      } = generateTypeString(property, this.objects);
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -277,7 +278,7 @@ export class APITypingsGenerator {
     }
 
     if (object.enum) {
-      const { codeBlocks } = object.createEnum();
+      const { codeBlocks } = generateStandaloneEnum(object);
 
       return {
         codeBlocks: codeBlocks,
@@ -331,7 +332,7 @@ export class APITypingsGenerator {
     const section = getSectionFromObjectName(object.name);
 
     delete imports[object.name];
-    stringCodeBlocks.unshift(createImportsBlock(imports, section, ObjectType.Object));
+    stringCodeBlocks.unshift(generateImportsBlock(imports, section, ObjectType.Object));
 
     if (stringCodeBlocks.length > 0) {
       const code = stringCodeBlocks.join(newLineChar.repeat(2));
@@ -434,7 +435,7 @@ export class APITypingsGenerator {
         imports: newImports,
         value,
         codeBlocks: newCodeBlocks,
-      } = property.getTypeString(this.objects, { inlineEnum: true });
+      } = generateTypeString(property, this.objects, { skipEnumNamesConstant: true });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -468,12 +469,12 @@ export class APITypingsGenerator {
     let imports: Dictionary<boolean> = {};
 
     if (object.enum) {
-      const { codeBlocks: newCodeBlocks } = object.createEnum();
+      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(object);
       codeBlocks = [
         ...newCodeBlocks,
       ];
     } else {
-      const { imports: newImports, value, codeBlocks: newCodeBlocks } = object.getTypeString(this.objects);
+      const { imports: newImports, value, codeBlocks: newCodeBlocks } = generateTypeString(object, this.objects);
       const codeBlock = new TypeCodeBlock({
         type: TypeScriptCodeTypes.Type,
         refName: object.name,
@@ -504,12 +505,12 @@ export class APITypingsGenerator {
     let imports: Dictionary<boolean> = {};
 
     if (response.enum) {
-      const { codeBlocks: newCodeBlocks } = response.createEnum();
+      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(response);
       codeBlocks = [
         ...newCodeBlocks,
       ];
     } else {
-      const { imports: newImports, value, codeBlocks: newCodeBlocks } = response.getTypeString(this.objects);
+      const { imports: newImports, value, codeBlocks: newCodeBlocks } = generateTypeString(response, this.objects);
       const codeBlock = new TypeCodeBlock({
         type: TypeScriptCodeTypes.Type,
         refName: object.name,
@@ -681,7 +682,7 @@ export class APITypingsGenerator {
         }
       });
       const code = [
-        createImportsBlock(imports, null),
+        generateImportsBlock(imports, null),
         ...codeBlocks,
       ];
 
