@@ -29,7 +29,7 @@ function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptio
       // TODO: Refactor
       // section_object_name -> property_name -> items => section_object_name_property_name_items enumNames
       objectParentName: options.objectParentName || object.parentObjectName,
-      skipEnumNamesConstant: options.skipEnumNamesConstant,
+      needEnumNamesConstant: !options.skipEnumNamesConstant,
     });
 
     typeString = value;

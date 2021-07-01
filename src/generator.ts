@@ -61,7 +61,7 @@ function getEnumNames(object: SchemaObject) {
 
 interface GenerateInlineEnumOptions {
   objectParentName?: string;
-  skipEnumNamesConstant?: boolean;
+  needEnumNamesConstant?: boolean;
 }
 
 export function generateInlineEnum(object: SchemaObject, options: GenerateInlineEnumOptions = {}): GeneratorResultInterface {
@@ -70,40 +70,51 @@ export function generateInlineEnum(object: SchemaObject, options: GenerateInline
     needEnumNamesDescription,
   } = getEnumNames(object);
 
+  options = {
+    needEnumNamesConstant: true,
+    ...options,
+  };
+
+  const { needEnumNamesConstant } = options;
+
   const codeBlocks: CodeBlocksArray = [];
   let descriptionLines: string[] = [];
 
   if (enumNames) {
-    const enumName = options.objectParentName ? `${options.objectParentName} ${object.name} enumNames` : object.name;
-    const enumInterfaceName = getInterfaceName(enumName);
-
-    const codeBlock = new TypeCodeBlock({
-      type: TypeScriptCodeTypes.ConstantObject,
-      refName: enumName,
-      interfaceName: enumInterfaceName,
-      needExport: true,
-      properties: [],
-    });
-
     if (needEnumNamesDescription) {
       descriptionLines.push('');
+
+      enumNames.forEach((name, index) => {
+        const value = object.enum[index];
+
+        if (needEnumNamesDescription) {
+          descriptionLines.push(`\`${value}\` — ${name}`);
+        }
+      });
     }
 
-    enumNames.forEach((name, index) => {
-      const value = object.enum[index];
+    if (needEnumNamesConstant) {
+      const enumName = options.objectParentName ? `${options.objectParentName} ${object.name} enumNames` : object.name;
+      const enumInterfaceName = getInterfaceName(enumName);
 
-      codeBlock.addProperty({
-        name: getEnumPropertyName(name.toString()),
-        value,
-        wrapValue: true,
+      const codeBlock = new TypeCodeBlock({
+        type: TypeScriptCodeTypes.ConstantObject,
+        refName: enumName,
+        interfaceName: enumInterfaceName,
+        needExport: true,
+        properties: [],
       });
 
-      if (needEnumNamesDescription) {
-        descriptionLines.push(`\`${value}\` — ${name}`);
-      }
-    });
+      enumNames.forEach((name, index) => {
+        const value = object.enum[index];
 
-    if (!options.skipEnumNamesConstant) {
+        codeBlock.addProperty({
+          name: getEnumPropertyName(name.toString()),
+          value,
+          wrapValue: true,
+        });
+      });
+
       codeBlocks.push(codeBlock);
     }
   }
