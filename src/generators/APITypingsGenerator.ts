@@ -117,7 +117,7 @@ export class APITypingsGenerator {
     this.resultFiles[path] = content;
   }
 
-  private appendToFileMap(section: string, imports: Dictionary<boolean>, codeBlocks: CodeBlocksArray) {
+  private appendToFileMap(section: string, imports: RefsDictionary, codeBlocks: CodeBlocksArray) {
     const methodFile = this.methodFilesMap[section] || {
       imports: {},
       codeBlocks: [],
@@ -224,7 +224,7 @@ export class APITypingsGenerator {
   }
 
   private getObjectInterfaceCode(object: SchemaObject): GeneratorResultInterface | false {
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
     let codeBlocks: CodeBlocksArray = [];
 
     const properties = this.getObjectProperties(object);
@@ -361,7 +361,7 @@ export class APITypingsGenerator {
     });
   }
 
-  private generateObjectsFromImports(imports: Dictionary<boolean>) {
+  private generateObjectsFromImports(imports: RefsDictionary) {
     Object.keys(imports).forEach((ref) => {
       const refName = getObjectNameByRef(ref);
       const refObject = this.objects[refName];
@@ -419,7 +419,7 @@ export class APITypingsGenerator {
       return new SchemaObject(paramRaw.name, paramRaw, interfaceName);
     });
 
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
     let codeBlocks: CodeBlocksArray = [];
 
     const codeBlock = new TypeCodeBlock({
@@ -466,7 +466,7 @@ export class APITypingsGenerator {
 
   private getObjectCodeBlockAsType(object: SchemaObject): GeneratorResultInterface | false {
     let codeBlocks: CodeBlocksArray = [];
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
 
     if (object.enum) {
       const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(object);
@@ -502,7 +502,7 @@ export class APITypingsGenerator {
 
   private getResponseCodeBlockAsType(object: SchemaObject, response: SchemaObject): GeneratorResultInterface | false {
     let codeBlocks: CodeBlocksArray = [];
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
 
     if (response.enum) {
       const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(response);

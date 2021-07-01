@@ -1,6 +1,6 @@
 import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
 import { SchemaObject } from './SchemaObject';
-import { Dictionary } from '../types';
+import { Dictionary, RefsDictionary } from '../types';
 import { getInterfaceName, getObjectNameByRef, joinOneOfValues, resolvePrimitiveTypesArray } from '../helpers';
 import {
   baseBoolIntRef,
@@ -17,7 +17,7 @@ import { generateInlineEnum } from '../generator';
 function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptions): GeneratorResultInterface {
   let codeBlocks: CodeBlocksArray = [];
   let typeString = 'any /* default type */';
-  let imports: Record<string, boolean> = {};
+  let imports: RefsDictionary = {};
   let description: string | undefined = '';
 
   if (object.enum) {
@@ -72,7 +72,7 @@ export function generateTypeString(
 ): GeneratorResultInterface {
   let codeBlocks: CodeBlocksArray = [];
   let typeString = 'any /* default type */';
-  let imports: Dictionary<boolean> = {};
+  let imports: RefsDictionary = {};
   let description: string | undefined = '';
 
   if (object.oneOf) {
