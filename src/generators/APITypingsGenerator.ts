@@ -206,7 +206,7 @@ export class APITypingsGenerator {
     }
   }
 
-  /*
+  /**
    * Filter properties with same name
    * If an object uses allOf, some nested objects may have the same properties
    */
@@ -249,7 +249,9 @@ export class APITypingsGenerator {
         value,
         codeBlocks: newCodeBlocks,
         description,
-      } = generateTypeString(property, this.objects);
+      } = generateTypeString(property, this.objects, {
+        objectParentName: object.name,
+      });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -435,7 +437,7 @@ export class APITypingsGenerator {
         imports: newImports,
         value,
         codeBlocks: newCodeBlocks,
-      } = generateTypeString(property, this.objects, { skipEnumNamesConstant: true });
+      } = generateTypeString(property, this.objects, { needEnumNamesConstant: false });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -506,11 +508,9 @@ export class APITypingsGenerator {
       value,
       codeBlocks,
       description,
-    } = generateTypeString(response, this.objects);
-
-    if (getInterfaceName(object.name) === 'FriendsAddResponse') {
-      consoleLogInfo(object);
-    }
+    } = generateTypeString(response, this.objects, {
+      objectParentName: ' ', // TODO: Refactor
+    });
 
     const codeBlock = new TypeCodeBlock({
       type: TypeScriptCodeTypes.Type,

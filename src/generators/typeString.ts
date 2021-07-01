@@ -20,6 +20,14 @@ import { isString } from '../utils';
 import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
 import { SchemaObject } from './SchemaObject';
 
+interface GenerateTypeStringOptions {
+  objectParentName?: string;
+  /**
+   * Determines whether enums will be inline to type value or them will be as separate interface block
+   */
+  needEnumNamesConstant?: boolean;
+}
+
 function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptions): GeneratorResultInterface {
   let codeBlocks: CodeBlocksArray = [];
   let typeString = 'any /* default type */';
@@ -35,7 +43,7 @@ function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptio
       // TODO: Refactor
       // section_object_name -> property_name -> items => section_object_name_property_name_items enumNames
       objectParentName: options.objectParentName || object.parentObjectName,
-      needEnumNamesConstant: !options.skipEnumNamesConstant,
+      needEnumNamesConstant: options.needEnumNamesConstant,
     });
 
     typeString = value;
@@ -63,14 +71,6 @@ function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptio
   };
 }
 
-interface GenerateTypeStringOptions {
-  objectParentName?: string;
-  /**
-   * Determines whether enums will be inline to type value or them will be as separate interface block
-   */
-  skipEnumNamesConstant?: boolean;
-}
-
 export function generateTypeString(
   object: SchemaObject,
   objects: Dictionary<SchemaObject>,
@@ -80,6 +80,11 @@ export function generateTypeString(
   let typeString = 'any /* default type */';
   let imports: RefsDictionary = {};
   let description: string | undefined = '';
+
+  options = {
+    needEnumNamesConstant: true,
+    ...options,
+  };
 
   if (object.oneOf) {
     const values = object.oneOf.map((oneOfObject) => {

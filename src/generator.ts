@@ -1,8 +1,8 @@
 import { newLineChar } from './constants';
 import { CodeBlocksArray, GeneratorResultInterface } from './generators/BaseCodeBlock';
+import { generateEnumConstantObject } from './generators/enums';
 import { SchemaObject } from './generators/SchemaObject';
-import { TypeCodeBlock, TypeScriptCodeTypes } from './generators/TypeCodeBlock';
-import { getEnumPropertyName, getInterfaceName, getSectionFromObjectName, joinOneOfValues } from './helpers';
+import { getInterfaceName, getSectionFromObjectName, joinOneOfValues } from './helpers';
 import { Dictionary, ObjectType, RefsDictionary, RefsDictionaryType } from './types';
 import { quoteJavaScriptValue, sortArrayAlphabetically, uniqueArray } from './utils';
 
@@ -79,7 +79,7 @@ export function generateInlineEnum(object: SchemaObject, options: GenerateInline
   } = getEnumNames(object);
 
   options = {
-    needEnumNamesConstant: true,
+    needEnumNamesConstant: isNumericEnum,
     ...options,
   };
 
@@ -108,28 +108,10 @@ export function generateInlineEnum(object: SchemaObject, options: GenerateInline
       });
     }
 
-    if (options.needEnumNamesConstant) {
-      const enumName = options.objectParentName ? `${options.objectParentName} ${object.name} enumNames` : object.name;
-      const enumInterfaceName = getInterfaceName(enumName);
+    if (isNumericEnum && options.needEnumNamesConstant) {
+      const enumName = `${options.objectParentName || ''} ${object.name} enumNames`.trim();
 
-      const codeBlock = new TypeCodeBlock({
-        type: TypeScriptCodeTypes.ConstantObject,
-        refName: enumName,
-        interfaceName: enumInterfaceName,
-        needExport: true,
-        properties: [],
-      });
-
-      enumNames.forEach((name, index) => {
-        const value = object.enum[index];
-
-        codeBlock.addProperty({
-          name: getEnumPropertyName(name.toString()),
-          value,
-          wrapValue: true,
-        });
-      });
-
+      const codeBlock = generateEnumConstantObject(object, enumName, enumNames);
       codeBlocks.push(codeBlock);
     }
   }
@@ -154,24 +136,10 @@ export function generateStandaloneEnum(object: SchemaObject, options: GenerateSt
   } = getEnumNames(object);
 
   if (enumNames) {
-    const enumName = options.objectParentName ? `${options.objectParentName} ${object.name} enum` : object.name;
+    const enumName = options.objectParentName != null ? `${options.objectParentName} ${object.name} enum` : object.name;
     const enumInterfaceName = getInterfaceName(enumName);
 
-    const codeBlock = new TypeCodeBlock({
-      type: TypeScriptCodeTypes.ConstantObject,
-      refName: enumName,
-      interfaceName: enumInterfaceName,
-      needExport: true,
-      properties: [],
-    });
-
-    enumNames.forEach((name, index) => {
-      codeBlock.addProperty({
-        name: getEnumPropertyName(name.toString()),
-        value: object.enum[index],
-        wrapValue: true,
-      });
-    });
+    const codeBlock = generateEnumConstantObject(object, enumName, enumNames);
 
     return {
       codeBlocks: [
