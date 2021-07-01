@@ -1,10 +1,10 @@
+import { newLineChar } from './constants';
+import { CodeBlocksArray, GeneratorResultInterface } from './generators/BaseCodeBlock';
+import { SchemaObject } from './generators/SchemaObject';
+import { TypeCodeBlock, TypeScriptCodeTypes } from './generators/TypeCodeBlock';
+import { getEnumPropertyName, getInterfaceName, getSectionFromObjectName, joinOneOfValues } from './helpers';
 import { Dictionary, ObjectType, RefsDictionary, RefsDictionaryType } from './types';
 import { quoteJavaScriptValue, sortArrayAlphabetically, uniqueArray } from './utils';
-import { newLineChar } from './constants';
-import { getEnumPropertyName, getInterfaceName, getSectionFromObjectName, joinOneOfValues } from './helpers';
-import { CodeBlocksArray, GeneratorResultInterface } from './generators/BaseCodeBlock';
-import { TypeCodeBlock, TypeScriptCodeTypes } from './generators/TypeCodeBlock';
-import { SchemaObject } from './generators/SchemaObject';
 
 export function generateImportsBlock(refs: RefsDictionary, section: string | null, type?: ObjectType): string {
   let importRefs = Object.entries(refs)
@@ -48,16 +48,18 @@ export function generateImportsBlock(refs: RefsDictionary, section: string | nul
 function getEnumNames(object: SchemaObject) {
   let { enumNames } = object;
 
+  const isNumericEnum = object.enum.some((value) => !!+value);
   const needEnumNamesDescription = !!enumNames;
 
   if (!enumNames) {
-    const canUseEnumNames = !object.enum.some((value) => !!+value);
+    const canUseEnumNames = !isNumericEnum;
     if (canUseEnumNames) {
       enumNames = [...object.enum];
     }
   }
 
   return {
+    isNumericEnum,
     needEnumNamesDescription,
     enumNames: Array.isArray(enumNames) && enumNames.length ? enumNames : undefined,
   };
@@ -66,10 +68,12 @@ function getEnumNames(object: SchemaObject) {
 interface GenerateInlineEnumOptions {
   objectParentName?: string;
   needEnumNamesConstant?: boolean;
+  refName?: string;
 }
 
 export function generateInlineEnum(object: SchemaObject, options: GenerateInlineEnumOptions = {}): GeneratorResultInterface {
   const {
+    isNumericEnum,
     enumNames,
     needEnumNamesDescription,
   } = getEnumNames(object);
@@ -79,13 +83,20 @@ export function generateInlineEnum(object: SchemaObject, options: GenerateInline
     ...options,
   };
 
-  const { needEnumNamesConstant } = options;
-
+  const imports: RefsDictionary = {};
   const codeBlocks: CodeBlocksArray = [];
   let descriptionLines: string[] = [];
 
   if (enumNames) {
     if (needEnumNamesDescription) {
+      if (isNumericEnum && options.refName) {
+        imports[options.refName] = RefsDictionaryType.Generate;
+
+        descriptionLines.push('');
+        descriptionLines.push('@note This enum have auto-generated constant with keys and values');
+        descriptionLines.push(`@see ${getInterfaceName(options.refName)}`);
+      }
+
       descriptionLines.push('');
 
       enumNames.forEach((name, index) => {
@@ -97,7 +108,7 @@ export function generateInlineEnum(object: SchemaObject, options: GenerateInline
       });
     }
 
-    if (needEnumNamesConstant) {
+    if (options.needEnumNamesConstant) {
       const enumName = options.objectParentName ? `${options.objectParentName} ${object.name} enumNames` : object.name;
       const enumInterfaceName = getInterfaceName(enumName);
 
@@ -127,7 +138,7 @@ export function generateInlineEnum(object: SchemaObject, options: GenerateInline
 
   return {
     codeBlocks,
-    imports: {},
+    imports,
     value: joinOneOfValues(values, true),
     description: descriptionLines.join(newLineChar),
   };
@@ -147,7 +158,7 @@ export function generateStandaloneEnum(object: SchemaObject, options: GenerateSt
     const enumInterfaceName = getInterfaceName(enumName);
 
     const codeBlock = new TypeCodeBlock({
-      type: TypeScriptCodeTypes.Enum,
+      type: TypeScriptCodeTypes.ConstantObject,
       refName: enumName,
       interfaceName: enumInterfaceName,
       needExport: true,

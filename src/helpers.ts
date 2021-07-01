@@ -1,6 +1,6 @@
 import fs, { promises as fsPromises } from 'fs';
 import path from 'path';
-import { capitalizeFirstLetter } from './utils';
+import { capitalizeFirstLetter, trimArray } from './utils';
 import { newLineChar, primitiveTypes, spaceChar } from './constants';
 import { Dictionary } from './types';
 import { consoleLogErrorAndExit } from './log';
@@ -125,6 +125,39 @@ export function transformPatternPropertyName(name: string): string {
   return '[key: string] /* default pattern property name */';
 }
 
+export function joinCommentLines(indent = 2, ...description: Array<string | string[]>): string[] {
+  let descriptionLines: string[] = [];
+
+  description.forEach((entry) => {
+    if (typeof entry === 'string') {
+      descriptionLines = [
+        ...descriptionLines,
+        ...trimArray((entry || '').trim().split(newLineChar)),
+      ];
+    } else if (Array.isArray(entry)) {
+      descriptionLines = [
+        ...descriptionLines,
+        ...entry,
+      ];
+    }
+  });
+
+  descriptionLines = trimArray(descriptionLines);
+  if (!descriptionLines.length) {
+    return [];
+  }
+
+  const indentSpaces = spaceChar.repeat(indent);
+
+  return [
+    `${indentSpaces}/**`,
+    ...descriptionLines.map((line) => {
+      return indentSpaces + ' ' + `* ${line}`.trim();
+    }),
+    `${indentSpaces} */`,
+  ];
+}
+
 export function joinOneOfValues(values: Array<string | number>, primitive?: boolean) {
   const joined = values.join(' | ');
 
@@ -133,6 +166,14 @@ export function joinOneOfValues(values: Array<string | number>, primitive?: bool
     return values.join(` |${newLineChar}${spaceChar.repeat(spacesCount)}`);
   } else {
     return joined;
+  }
+}
+
+export function formatArrayDepth(value: string, depth: number) {
+  if (value.endsWith('\'') || value.includes('|')) {
+    return `Array<${value}>` + '[]'.repeat(depth - 1); // Need decrement depth value because of Array<T> has its own depth
+  } else {
+    return value + '[]'.repeat(depth);
   }
 }
 

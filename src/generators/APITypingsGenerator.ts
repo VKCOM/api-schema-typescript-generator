@@ -501,38 +501,38 @@ export class APITypingsGenerator {
   }
 
   private getResponseCodeBlockAsType(object: SchemaObject, response: SchemaObject): GeneratorResultInterface | false {
-    let codeBlocks: CodeBlocksArray = [];
-    let imports: RefsDictionary = {};
+    const {
+      imports,
+      value,
+      codeBlocks,
+      description,
+    } = generateTypeString(response, this.objects);
 
-    if (response.enum) {
-      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(response);
-      codeBlocks = [
-        ...newCodeBlocks,
-      ];
-    } else {
-      const { imports: newImports, value, codeBlocks: newCodeBlocks } = generateTypeString(response, this.objects);
-      const codeBlock = new TypeCodeBlock({
-        type: TypeScriptCodeTypes.Type,
-        refName: object.name,
-        interfaceName: getInterfaceName(object.name),
-        description: object.description,
-        needExport: true,
-        properties: [],
-        value,
-      });
-
-      imports = newImports;
-      codeBlocks = [
-        ...codeBlocks,
-        ...newCodeBlocks,
-        codeBlock,
-      ];
+    if (getInterfaceName(object.name) === 'FriendsAddResponse') {
+      consoleLogInfo(object);
     }
 
+    const codeBlock = new TypeCodeBlock({
+      type: TypeScriptCodeTypes.Type,
+      refName: object.name,
+      interfaceName: getInterfaceName(object.name),
+      description: [
+        object.description,
+        description || '',
+      ].join(newLineChar),
+      needExport: true,
+      properties: [],
+      value,
+    });
+
     return {
-      codeBlocks,
+      codeBlocks: [
+        ...codeBlocks,
+        codeBlock,
+      ],
       imports,
       value: '',
+      description,
     };
   }
 

@@ -7,7 +7,13 @@ import {
   scalarTypes,
 } from '../constants';
 import { generateInlineEnum } from '../generator';
-import { getInterfaceName, getObjectNameByRef, joinOneOfValues, resolvePrimitiveTypesArray } from '../helpers';
+import {
+  formatArrayDepth,
+  getInterfaceName,
+  getObjectNameByRef,
+  joinOneOfValues,
+  resolvePrimitiveTypesArray,
+} from '../helpers';
 import { consoleLogErrorAndExit } from '../log';
 import { Dictionary, RefsDictionary, RefsDictionaryType } from '../types';
 import { isString } from '../utils';
@@ -104,8 +110,25 @@ export function generateTypeString(
         consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
       }
 
-      imports[refName] = RefsDictionaryType.GenerateAndImport;
-      typeString = getInterfaceName(refName) + '[]'.repeat(depth);
+      if (refObject.enum) {
+        const {
+          value,
+          description: newDescription,
+          imports: newImports,
+          codeBlocks: newCodeBlocks,
+        } = generateInlineEnum(refObject, {
+          needEnumNamesConstant: false,
+          refName,
+        });
+
+        typeString = formatArrayDepth(value, depth);
+        description = newDescription;
+        imports = { ...imports, ...newImports };
+        codeBlocks = [...codeBlocks, ...newCodeBlocks];
+      } else {
+        imports[refName] = RefsDictionaryType.GenerateAndImport;
+        typeString = getInterfaceName(refName) + '[]'.repeat(depth);
+      }
     } else {
       const {
         value,
@@ -118,12 +141,7 @@ export function generateTypeString(
         objectParentName: object.parentObjectName,
       });
 
-      if (value.endsWith('\'') || value.includes('|')) {
-        typeString = `Array<${value}>` + '[]'.repeat(depth - 1); // Need decrement depth value because of Array<T> has its own depth
-      } else {
-        typeString = value + '[]'.repeat(depth);
-      }
-
+      typeString = formatArrayDepth(value, depth);
       description = newDescription;
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -151,8 +169,20 @@ export function generateTypeString(
         }
 
         if (refObject.enum) {
-          imports[refName] = RefsDictionaryType.GenerateAndImport;
-          typeString = getInterfaceName(refName);
+          const {
+            value,
+            description: newDescription,
+            imports: newImports,
+            codeBlocks: newCodeBlocks,
+          } = generateInlineEnum(refObject, {
+            needEnumNamesConstant: false,
+            refName,
+          });
+
+          typeString = value;
+          description = newDescription;
+          imports = { ...imports, ...newImports };
+          codeBlocks = [...codeBlocks, ...newCodeBlocks];
         } else if (refObject.oneOf) {
           const values = refObject.oneOf.map((oneOfObject) => {
             const { value, imports: newImports } = generateTypeString(oneOfObject, objects);
