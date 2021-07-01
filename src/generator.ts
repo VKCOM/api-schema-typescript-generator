@@ -1,4 +1,4 @@
-import { Dictionary, ObjectType, RefsDictionary } from './types';
+import { Dictionary, ObjectType, RefsDictionary, RefsDictionaryType } from './types';
 import { quoteJavaScriptValue, sortArrayAlphabetically, uniqueArray } from './utils';
 import { newLineChar } from './constants';
 import { getEnumPropertyName, getInterfaceName, getSectionFromObjectName, joinOneOfValues } from './helpers';
@@ -6,11 +6,15 @@ import { CodeBlocksArray, GeneratorResultInterface } from './generators/BaseCode
 import { TypeCodeBlock, TypeScriptCodeTypes } from './generators/TypeCodeBlock';
 import { SchemaObject } from './generators/SchemaObject';
 
-export function generateImportsBlock(imports: RefsDictionary, section: string | null, type?: ObjectType): string {
-  const objectsToImport = uniqueArray(Object.keys(imports));
-  const paths: Dictionary<string[]> = {};
+export function generateImportsBlock(refs: RefsDictionary, section: string | null, type?: ObjectType): string {
+  let importRefs = Object.entries(refs)
+    .filter(([, type]) => type === RefsDictionaryType.GenerateAndImport)
+    .map(([key]) => key);
 
-  objectsToImport.forEach((objectName) => {
+  importRefs = uniqueArray(importRefs);
+
+  const paths: Dictionary<string[]> = {};
+  importRefs.forEach((objectName) => {
     const importSection = getSectionFromObjectName(objectName);
     const interfaceName = getInterfaceName(objectName);
     let path;

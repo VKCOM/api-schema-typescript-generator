@@ -3,7 +3,7 @@ import {
   JSONSchemaMethodInfoInterface,
   JSONSchemaMethodsDefinitionsInterface,
   ObjectType,
-  RefsDictionary,
+  RefsDictionary, RefsDictionaryType,
 } from '../types';
 import { SchemaObject } from './SchemaObject';
 import {
@@ -408,7 +408,7 @@ export class APITypingsGenerator {
         if (paramRaw.items) {
           if (paramRaw.items.$ref) {
             this.generateObjectsFromRefs({
-              [paramRaw.items.$ref]: true,
+              [paramRaw.items.$ref]: RefsDictionaryType.GenerateAndImport,
             });
 
             paramRaw.description += newLineChar.repeat(2) + paramRaw.items.$ref;

@@ -1,7 +1,3 @@
-import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
-import { SchemaObject } from './SchemaObject';
-import { Dictionary, RefsDictionary } from '../types';
-import { getInterfaceName, getObjectNameByRef, joinOneOfValues, resolvePrimitiveTypesArray } from '../helpers';
 import {
   baseBoolIntRef,
   baseOkResponseRef,
@@ -10,9 +6,13 @@ import {
   PropertyType,
   scalarTypes,
 } from '../constants';
-import { isString } from '../utils';
-import { consoleLogErrorAndExit } from '../log';
 import { generateInlineEnum } from '../generator';
+import { getInterfaceName, getObjectNameByRef, joinOneOfValues, resolvePrimitiveTypesArray } from '../helpers';
+import { consoleLogErrorAndExit } from '../log';
+import { Dictionary, RefsDictionary, RefsDictionaryType } from '../types';
+import { isString } from '../utils';
+import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
+import { SchemaObject } from './SchemaObject';
 
 function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptions): GeneratorResultInterface {
   let codeBlocks: CodeBlocksArray = [];
@@ -104,7 +104,7 @@ export function generateTypeString(
         consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
       }
 
-      imports[refName] = true;
+      imports[refName] = RefsDictionaryType.GenerateAndImport;
       typeString = getInterfaceName(refName) + '[]'.repeat(depth);
     } else {
       const {
@@ -151,7 +151,7 @@ export function generateTypeString(
         }
 
         if (refObject.enum) {
-          imports[refName] = true;
+          imports[refName] = RefsDictionaryType.GenerateAndImport;
           typeString = getInterfaceName(refName);
         } else if (refObject.oneOf) {
           const values = refObject.oneOf.map((oneOfObject) => {
@@ -164,7 +164,7 @@ export function generateTypeString(
         } else if (isString(refObject.type) && scalarTypes[refObject.type] && !refObject.ref) {
           typeString = scalarTypes[refObject.type];
         } else {
-          imports[refName] = true;
+          imports[refName] = RefsDictionaryType.GenerateAndImport;
           typeString = getInterfaceName(refName);
         }
       }
