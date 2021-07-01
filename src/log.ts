@@ -6,7 +6,7 @@ function getInspectArgs(args: any[]) {
     if (typeof arg === 'object') {
       return inspect(arg, {
         showHidden: false,
-        depth: null,
+        depth: 10,
         colors: true,
       });
     } else {

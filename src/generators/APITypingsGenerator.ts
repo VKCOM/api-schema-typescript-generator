@@ -549,59 +549,31 @@ export class APITypingsGenerator {
     };
 
     const objectName = getObjectNameByRef(object.ref);
-    let response: SchemaObject | undefined;
-
     if (nonBuildableRefs[objectName]) {
       return this.getObjectCodeBlockAsType(object);
-    } else if (this.responses[objectName]) {
-      response = this.responses[objectName];
-
-      const { properties = [] } = response;
-      const responseProperty = properties.find((property) => property.name === 'response');
-
-      if (responseProperty) {
-        response = responseProperty;
-        if (response.ref) {
-          return this.getResponseCodeBlockAsType(object, response);
-        }
-      } else {
-        // Maybe this is a crutch?
-        response.properties.forEach((property) => {
-          if (response && property.parentObjectName === response.name) {
-            response = property;
-            return true;
-          }
-
-          return false;
-        });
-      }
-    } else if (this.objects[objectName]) {
-      response = this.objects[objectName];
-
-      if (object.ref) {
-        return this.getResponseCodeBlockAsType(object, object);
-      }
     }
 
-    // @ts-ignore
-    while (response && response.ref) {
-      response = this.getResponseObjectRef(response);
-    }
-
+    let response = this.getResponseObjectRef(object);
     if (!response) {
-      consoleLogErrorAndExit(`"${object.name}" has no response`);
+      consoleLogError(`response schema object "${object.name}" has no response`, object);
       return false;
     }
 
-    response.originalName = response.name;
-    response.setName(object.name);
+    // VK API JSON Schema specific heuristic
+    if (response.properties.length === 1 && response.properties[0].name === 'response') {
+      response = response.properties[0];
+    }
 
-    let result: GeneratorResultInterface | false;
+    if (response.ref) {
+      return this.getResponseCodeBlockAsType(object, response);
+    }
+
+    response = response.clone();
+    response.setName(object.name);
 
     switch (response.type) {
       case 'object':
-        result = this.getObjectInterfaceCode(response);
-        break;
+        return this.getObjectInterfaceCode(response);
 
       case 'integer':
       case 'string':
@@ -610,11 +582,9 @@ export class APITypingsGenerator {
         return this.getResponseCodeBlockAsType(object, response);
 
       default:
-        consoleLogErrorAndExit(response.name, 'unknown type');
+        consoleLogErrorAndExit(response.name, 'unknown type', response.type);
         return false;
     }
-
-    return result;
   }
 
   public generateResponse(section: string, response: SchemaObject) {
@@ -630,21 +600,21 @@ export class APITypingsGenerator {
   }
 
   private generateMethodParamsAndResponses(methodInfo: JSONSchemaMethodInfoInterface) {
-    const { name } = methodInfo;
-    const section = getMethodSection(name);
+    const { name: methodName } = methodInfo;
+    const section = getMethodSection(methodName);
 
     if (!isObject(methodInfo.responses)) {
-      consoleLogErrorAndExit(`"${name}" "responses" field is not an object.`);
+      consoleLogErrorAndExit(`"${methodName}" "responses" field is not an object.`);
       return;
     }
 
     if (Object.keys(methodInfo.responses).length === 0) {
-      consoleLogErrorAndExit(`"${name}" "responses" field is empty.`);
+      consoleLogErrorAndExit(`"${methodName}" "responses" field is empty.`);
       return;
     }
 
     // Comment with method name for visual sections in file
-    const methodNameComment = new CommentCodeBlock([name]);
+    const methodNameComment = new CommentCodeBlock([methodName]);
     if (methodInfo.description) {
       methodNameComment.appendLines([
         '',
@@ -656,11 +626,11 @@ export class APITypingsGenerator {
     this.generateMethodParams(methodInfo);
 
     Object.entries(methodInfo.responses).forEach(([responseName, responseObject]) => {
-      if (this.ignoredResponses[name] && this.ignoredResponses[name][responseName]) {
+      if (this.ignoredResponses[methodName] && this.ignoredResponses[methodName][responseName]) {
         return;
       }
 
-      responseObject.name = `${name}_${responseName}`;
+      responseObject.name = `${methodName}_${responseName}`;
       this.generateResponse(section, new SchemaObject(responseObject.name, responseObject));
     });
   }
