@@ -1,3 +1,4 @@
+import { EnumLikeArray } from '../types';
 import { isObject, isString } from '../utils';
 import {
   transformPatternPropertyName,
@@ -79,8 +80,8 @@ export class SchemaObject {
   readonly description!: string;
   readonly ref!: string;
   required!: string[];
-  readonly enum!: Array<string | number>;
-  readonly enumNames!: Array<string | number>;
+  readonly enum!: EnumLikeArray;
+  readonly enumNames!: EnumLikeArray;
   properties!: SchemaObject[];
   readonly items!: SchemaObject;
   readonly oneOf!: SchemaObject[];

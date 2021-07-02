@@ -6,7 +6,7 @@ import {
   PropertyType,
   scalarTypes,
 } from '../constants';
-import { generateInlineEnum } from '../generator';
+import { generateInlineEnum } from './enums';
 import {
   formatArrayDepth,
   getInterfaceName,
@@ -115,25 +115,8 @@ export function generateTypeString(
         consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
       }
 
-      if (refObject.enum) {
-        const {
-          value,
-          description: newDescription,
-          imports: newImports,
-          codeBlocks: newCodeBlocks,
-        } = generateInlineEnum(refObject, {
-          needEnumNamesConstant: false,
-          refName,
-        });
-
-        typeString = formatArrayDepth(value, depth);
-        description = newDescription;
-        imports = { ...imports, ...newImports };
-        codeBlocks = [...codeBlocks, ...newCodeBlocks];
-      } else {
-        imports[refName] = RefsDictionaryType.GenerateAndImport;
-        typeString = getInterfaceName(refName) + '[]'.repeat(depth);
-      }
+      imports[refName] = RefsDictionaryType.GenerateAndImport;
+      typeString = formatArrayDepth(getInterfaceName(refName), depth);
     } else {
       const {
         value,
@@ -168,26 +151,13 @@ export function generateTypeString(
 
       default: {
         const refObject = objects[refName];
-
         if (!refObject) {
           consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
         }
 
         if (refObject.enum) {
-          const {
-            value,
-            description: newDescription,
-            imports: newImports,
-            codeBlocks: newCodeBlocks,
-          } = generateInlineEnum(refObject, {
-            needEnumNamesConstant: false,
-            refName,
-          });
-
-          typeString = value;
-          description = newDescription;
-          imports = { ...imports, ...newImports };
-          codeBlocks = [...codeBlocks, ...newCodeBlocks];
+          imports[refName] = RefsDictionaryType.GenerateAndImport;
+          typeString = getInterfaceName(refName);
         } else if (refObject.oneOf) {
           const values = refObject.oneOf.map((oneOfObject) => {
             const { value, imports: newImports } = generateTypeString(oneOfObject, objects);

@@ -5,6 +5,7 @@ import {
   ObjectType,
   RefsDictionary, RefsDictionaryType,
 } from '../types';
+import { generateEnumAsUnionType } from './enums';
 import { SchemaObject } from './SchemaObject';
 import {
   getInterfaceName, getMethodSection, getObjectNameByRef,
@@ -25,7 +26,7 @@ import {
 import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
 import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
-import { generateImportsBlock, generateStandaloneEnum } from '../generator';
+import { generateImportsBlock } from '../generator';
 import { generateTypeString } from './typeString';
 
 interface APITypingsGeneratorOptions {
@@ -280,7 +281,7 @@ export class APITypingsGenerator {
     }
 
     if (object.enum) {
-      const { codeBlocks } = generateStandaloneEnum(object);
+      const { codeBlocks } = generateEnumAsUnionType(object);
 
       return {
         codeBlocks: codeBlocks,
@@ -471,7 +472,7 @@ export class APITypingsGenerator {
     let imports: RefsDictionary = {};
 
     if (object.enum) {
-      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(object);
+      const { codeBlocks: newCodeBlocks } = generateEnumAsUnionType(object);
       codeBlocks = [
         ...newCodeBlocks,
       ];

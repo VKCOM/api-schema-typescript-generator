@@ -9,6 +9,8 @@ export enum RefsDictionaryType {
 
 export type RefsDictionary = Record<string, RefsDictionaryType>;
 
+export type EnumLikeArray = Array<string | number>;
+
 export enum ObjectType {
   Object = 'object',
   Response = 'response',
