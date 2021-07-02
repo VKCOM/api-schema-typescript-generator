@@ -1,4 +1,4 @@
-import { Dictionary } from '../types';
+import { RefsDictionary } from '../types';
 
 export abstract class BaseCodeBlock {
   toString(): string {
@@ -10,7 +10,7 @@ export type CodeBlocksArray = BaseCodeBlock[];
 
 export interface GeneratorResultInterface {
   codeBlocks: CodeBlocksArray;
-  imports: Dictionary<boolean>;
+  imports: RefsDictionary;
   value: string;
   description?: string;
 }

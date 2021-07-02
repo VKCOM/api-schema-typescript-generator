@@ -1,8 +1,8 @@
 import { BaseCodeBlock } from './BaseCodeBlock';
 import { newLineChar } from '../constants';
-import { areQuotesNeededForProperty } from '../helpers';
+import { areQuotesNeededForProperty, joinCommentLines } from '../helpers';
 import { consoleLogErrorAndExit } from '../log';
-import { quoteJavaScriptValue, trimArray, trimStringDoubleSpaces } from '../utils';
+import { quoteJavaScriptValue, trimStringDoubleSpaces } from '../utils';
 
 export enum TypeScriptCodeTypes {
   Interface = 'interface',
@@ -89,15 +89,11 @@ export class TypeCodeBlock extends BaseCodeBlock {
         `  ${quoteChar}${property.name}${quoteChar}${divider} ${value}${lineEnd}`,
       ];
 
-      const propertyDescriptionLines = trimArray((property.description || '').trim().split(newLineChar));
-      if (propertyDescriptionLines.length) {
-        propertyCode.unshift([
-          '  /**',
-          ...propertyDescriptionLines.map((line) => {
-            return '   ' + `* ${line}`.trim();
-          }),
-          '   */',
-        ].join(newLineChar));
+      if (property.description) {
+        const commentLines = joinCommentLines(2, property.description);
+        if (commentLines.length) {
+          propertyCode.unshift(commentLines.join(newLineChar));
+        }
       }
 
       return propertyCode.join(newLineChar);
@@ -112,16 +108,15 @@ export class TypeCodeBlock extends BaseCodeBlock {
     let before: string[] = [];
     let code = '';
 
-    if (this.description) {
-      before = [
-        '/**',
-        ` * ${this.description}`,
-        ' */',
-      ];
-    }
-
     if (this.refName) {
       before.push(`// ${this.refName}`);
+    }
+
+    if (this.description) {
+      before = [
+        ...before,
+        ...joinCommentLines(0, this.description),
+      ];
     }
 
     switch (this.type) {

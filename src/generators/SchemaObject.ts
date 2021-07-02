@@ -1,3 +1,4 @@
+import { EnumLikeArray } from '../types';
 import { isObject, isString } from '../utils';
 import {
   transformPatternPropertyName,
@@ -70,24 +71,17 @@ export class SchemaObject {
     if (Array.isArray(object.allOf) && object.allOf.length > 0) {
       this.allOf = object.allOf.map((item: any) => new SchemaObject(name, item));
     }
-
-    // Crutch
-    // if (this.oneOf && this.oneOf.length === 1) {
-    //   this.allOf = [this.oneOf[0]];
-    //   this.oneOf = undefined;
-    // }
   }
 
   name!: string;
-  originalName!: string;
   parentObjectName!: string;
 
   type!: string | string[];
   readonly description!: string;
   readonly ref!: string;
   required!: string[];
-  readonly enum!: Array<string | number>;
-  readonly enumNames!: Array<string | number>;
+  readonly enum!: EnumLikeArray;
+  readonly enumNames!: EnumLikeArray;
   properties!: SchemaObject[];
   readonly items!: SchemaObject;
   readonly oneOf!: SchemaObject[];
@@ -97,7 +91,13 @@ export class SchemaObject {
     this.name = name;
 
     if (Array.isArray(this.properties)) {
-      this.properties.forEach((property) => property.parentObjectName = name);
+      this.properties.forEach((property) => {
+        property.parentObjectName = name;
+      });
     }
+  }
+
+  public clone() {
+    return Object.assign(Object.create(Object.getPrototypeOf(this)), this) as NonNullable<SchemaObject>;
   }
 }

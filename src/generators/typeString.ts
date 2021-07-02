@@ -1,7 +1,3 @@
-import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
-import { SchemaObject } from './SchemaObject';
-import { Dictionary } from '../types';
-import { getInterfaceName, getObjectNameByRef, joinOneOfValues, resolvePrimitiveTypesArray } from '../helpers';
 import {
   baseBoolIntRef,
   baseOkResponseRef,
@@ -10,14 +6,32 @@ import {
   PropertyType,
   scalarTypes,
 } from '../constants';
-import { isString } from '../utils';
+import { generateInlineEnum } from './enums';
+import {
+  formatArrayDepth,
+  getInterfaceName,
+  getObjectNameByRef,
+  joinOneOfValues,
+  resolvePrimitiveTypesArray,
+} from '../helpers';
 import { consoleLogErrorAndExit } from '../log';
-import { generateInlineEnum } from '../generator';
+import { Dictionary, RefsDictionary, RefsDictionaryType } from '../types';
+import { isString } from '../utils';
+import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
+import { SchemaObject } from './SchemaObject';
+
+interface GenerateTypeStringOptions {
+  objectParentName?: string;
+  /**
+   * Determines whether enums will be inline to type value or them will be as separate interface block
+   */
+  needEnumNamesConstant?: boolean;
+}
 
 function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptions): GeneratorResultInterface {
   let codeBlocks: CodeBlocksArray = [];
   let typeString = 'any /* default type */';
-  let imports: Record<string, boolean> = {};
+  let imports: RefsDictionary = {};
   let description: string | undefined = '';
 
   if (object.enum) {
@@ -29,7 +43,7 @@ function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptio
       // TODO: Refactor
       // section_object_name -> property_name -> items => section_object_name_property_name_items enumNames
       objectParentName: options.objectParentName || object.parentObjectName,
-      skipEnumNamesConstant: options.skipEnumNamesConstant,
+      needEnumNamesConstant: options.needEnumNamesConstant,
     });
 
     typeString = value;
@@ -57,14 +71,6 @@ function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptio
   };
 }
 
-interface GenerateTypeStringOptions {
-  objectParentName?: string;
-  /**
-   * Determines whether enums will be inline to type value or them will be as separate interface block
-   */
-  skipEnumNamesConstant?: boolean;
-}
-
 export function generateTypeString(
   object: SchemaObject,
   objects: Dictionary<SchemaObject>,
@@ -72,8 +78,13 @@ export function generateTypeString(
 ): GeneratorResultInterface {
   let codeBlocks: CodeBlocksArray = [];
   let typeString = 'any /* default type */';
-  let imports: Dictionary<boolean> = {};
+  let imports: RefsDictionary = {};
   let description: string | undefined = '';
+
+  options = {
+    needEnumNamesConstant: true,
+    ...options,
+  };
 
   if (object.oneOf) {
     const values = object.oneOf.map((oneOfObject) => {
@@ -104,8 +115,8 @@ export function generateTypeString(
         consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
       }
 
-      imports[refName] = true;
-      typeString = getInterfaceName(refName) + '[]'.repeat(depth);
+      imports[refName] = RefsDictionaryType.GenerateAndImport;
+      typeString = formatArrayDepth(getInterfaceName(refName), depth);
     } else {
       const {
         value,
@@ -118,12 +129,7 @@ export function generateTypeString(
         objectParentName: object.parentObjectName,
       });
 
-      if (value.endsWith('\'') || value.includes('|')) {
-        typeString = `Array<${value}>` + '[]'.repeat(depth - 1); // Need decrement depth value because of Array<T> has its own depth
-      } else {
-        typeString = value + '[]'.repeat(depth);
-      }
-
+      typeString = formatArrayDepth(value, depth);
       description = newDescription;
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -145,13 +151,12 @@ export function generateTypeString(
 
       default: {
         const refObject = objects[refName];
-
         if (!refObject) {
           consoleLogErrorAndExit(`Error, object for "${refName}" ref is not found.`);
         }
 
         if (refObject.enum) {
-          imports[refName] = true;
+          imports[refName] = RefsDictionaryType.GenerateAndImport;
           typeString = getInterfaceName(refName);
         } else if (refObject.oneOf) {
           const values = refObject.oneOf.map((oneOfObject) => {
@@ -164,7 +169,7 @@ export function generateTypeString(
         } else if (isString(refObject.type) && scalarTypes[refObject.type] && !refObject.ref) {
           typeString = scalarTypes[refObject.type];
         } else {
-          imports[refName] = true;
+          imports[refName] = RefsDictionaryType.GenerateAndImport;
           typeString = getInterfaceName(refName);
         }
       }

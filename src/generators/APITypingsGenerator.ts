@@ -3,8 +3,9 @@ import {
   JSONSchemaMethodInfoInterface,
   JSONSchemaMethodsDefinitionsInterface,
   ObjectType,
-  RefsDictionary,
+  RefsDictionary, RefsDictionaryType,
 } from '../types';
+import { generateEnumAsUnionType } from './enums';
 import { SchemaObject } from './SchemaObject';
 import {
   getInterfaceName, getMethodSection, getObjectNameByRef,
@@ -25,7 +26,7 @@ import {
 import path from 'path';
 import { CommentCodeBlock } from './CommentCodeBlock';
 import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
-import { generateImportsBlock, generateStandaloneEnum } from '../generator';
+import { generateImportsBlock } from '../generator';
 import { generateTypeString } from './typeString';
 
 interface APITypingsGeneratorOptions {
@@ -117,7 +118,7 @@ export class APITypingsGenerator {
     this.resultFiles[path] = content;
   }
 
-  private appendToFileMap(section: string, imports: Dictionary<boolean>, codeBlocks: CodeBlocksArray) {
+  private appendToFileMap(section: string, imports: RefsDictionary, codeBlocks: CodeBlocksArray) {
     const methodFile = this.methodFilesMap[section] || {
       imports: {},
       codeBlocks: [],
@@ -206,7 +207,7 @@ export class APITypingsGenerator {
     }
   }
 
-  /*
+  /**
    * Filter properties with same name
    * If an object uses allOf, some nested objects may have the same properties
    */
@@ -224,7 +225,7 @@ export class APITypingsGenerator {
   }
 
   private getObjectInterfaceCode(object: SchemaObject): GeneratorResultInterface | false {
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
     let codeBlocks: CodeBlocksArray = [];
 
     const properties = this.getObjectProperties(object);
@@ -249,7 +250,9 @@ export class APITypingsGenerator {
         value,
         codeBlocks: newCodeBlocks,
         description,
-      } = generateTypeString(property, this.objects);
+      } = generateTypeString(property, this.objects, {
+        objectParentName: object.name,
+      });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -278,7 +281,7 @@ export class APITypingsGenerator {
     }
 
     if (object.enum) {
-      const { codeBlocks } = generateStandaloneEnum(object);
+      const { codeBlocks } = generateEnumAsUnionType(object);
 
       return {
         codeBlocks: codeBlocks,
@@ -361,7 +364,7 @@ export class APITypingsGenerator {
     });
   }
 
-  private generateObjectsFromImports(imports: Dictionary<boolean>) {
+  private generateObjectsFromImports(imports: RefsDictionary) {
     Object.keys(imports).forEach((ref) => {
       const refName = getObjectNameByRef(ref);
       const refObject = this.objects[refName];
@@ -408,7 +411,7 @@ export class APITypingsGenerator {
         if (paramRaw.items) {
           if (paramRaw.items.$ref) {
             this.generateObjectsFromRefs({
-              [paramRaw.items.$ref]: true,
+              [paramRaw.items.$ref]: RefsDictionaryType.GenerateAndImport,
             });
 
             paramRaw.description += newLineChar.repeat(2) + paramRaw.items.$ref;
@@ -419,7 +422,7 @@ export class APITypingsGenerator {
       return new SchemaObject(paramRaw.name, paramRaw, interfaceName);
     });
 
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
     let codeBlocks: CodeBlocksArray = [];
 
     const codeBlock = new TypeCodeBlock({
@@ -435,7 +438,7 @@ export class APITypingsGenerator {
         imports: newImports,
         value,
         codeBlocks: newCodeBlocks,
-      } = generateTypeString(property, this.objects, { skipEnumNamesConstant: true });
+      } = generateTypeString(property, this.objects, { needEnumNamesConstant: false });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -466,10 +469,10 @@ export class APITypingsGenerator {
 
   private getObjectCodeBlockAsType(object: SchemaObject): GeneratorResultInterface | false {
     let codeBlocks: CodeBlocksArray = [];
-    let imports: Dictionary<boolean> = {};
+    let imports: RefsDictionary = {};
 
     if (object.enum) {
-      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(object);
+      const { codeBlocks: newCodeBlocks } = generateEnumAsUnionType(object);
       codeBlocks = [
         ...newCodeBlocks,
       ];
@@ -501,38 +504,36 @@ export class APITypingsGenerator {
   }
 
   private getResponseCodeBlockAsType(object: SchemaObject, response: SchemaObject): GeneratorResultInterface | false {
-    let codeBlocks: CodeBlocksArray = [];
-    let imports: Dictionary<boolean> = {};
+    const {
+      imports,
+      value,
+      codeBlocks,
+      description,
+    } = generateTypeString(response, this.objects, {
+      objectParentName: ' ', // TODO: Refactor
+    });
 
-    if (response.enum) {
-      const { codeBlocks: newCodeBlocks } = generateStandaloneEnum(response);
-      codeBlocks = [
-        ...newCodeBlocks,
-      ];
-    } else {
-      const { imports: newImports, value, codeBlocks: newCodeBlocks } = generateTypeString(response, this.objects);
-      const codeBlock = new TypeCodeBlock({
-        type: TypeScriptCodeTypes.Type,
-        refName: object.name,
-        interfaceName: getInterfaceName(object.name),
-        description: object.description,
-        needExport: true,
-        properties: [],
-        value,
-      });
-
-      imports = newImports;
-      codeBlocks = [
-        ...codeBlocks,
-        ...newCodeBlocks,
-        codeBlock,
-      ];
-    }
+    const codeBlock = new TypeCodeBlock({
+      type: TypeScriptCodeTypes.Type,
+      refName: object.name,
+      interfaceName: getInterfaceName(object.name),
+      description: [
+        object.description,
+        description || '',
+      ].join(newLineChar),
+      needExport: true,
+      properties: [],
+      value,
+    });
 
     return {
-      codeBlocks,
+      codeBlocks: [
+        ...codeBlocks,
+        codeBlock,
+      ],
       imports,
       value: '',
+      description,
     };
   }
 
@@ -549,59 +550,31 @@ export class APITypingsGenerator {
     };
 
     const objectName = getObjectNameByRef(object.ref);
-    let response: SchemaObject | undefined;
-
     if (nonBuildableRefs[objectName]) {
       return this.getObjectCodeBlockAsType(object);
-    } else if (this.responses[objectName]) {
-      response = this.responses[objectName];
-
-      const { properties = [] } = response;
-      const responseProperty = properties.find((property) => property.name === 'response');
-
-      if (responseProperty) {
-        response = responseProperty;
-        if (response.ref) {
-          return this.getResponseCodeBlockAsType(object, response);
-        }
-      } else {
-        // Maybe this is a crutch?
-        response.properties.forEach((property) => {
-          if (response && property.parentObjectName === response.name) {
-            response = property;
-            return true;
-          }
-
-          return false;
-        });
-      }
-    } else if (this.objects[objectName]) {
-      response = this.objects[objectName];
-
-      if (object.ref) {
-        return this.getResponseCodeBlockAsType(object, object);
-      }
     }
 
-    // @ts-ignore
-    while (response && response.ref) {
-      response = this.getResponseObjectRef(response);
-    }
-
+    let response = this.getResponseObjectRef(object);
     if (!response) {
-      consoleLogErrorAndExit(`"${object.name}" has no response`);
+      consoleLogError(`response schema object "${object.name}" has no response`, object);
       return false;
     }
 
-    response.originalName = response.name;
-    response.setName(object.name);
+    // VK API JSON Schema specific heuristic
+    if (response.properties.length === 1 && response.properties[0].name === 'response') {
+      response = response.properties[0];
+    }
 
-    let result: GeneratorResultInterface | false;
+    if (response.ref) {
+      return this.getResponseCodeBlockAsType(object, response);
+    }
+
+    response = response.clone();
+    response.setName(object.name);
 
     switch (response.type) {
       case 'object':
-        result = this.getObjectInterfaceCode(response);
-        break;
+        return this.getObjectInterfaceCode(response);
 
       case 'integer':
       case 'string':
@@ -610,11 +583,9 @@ export class APITypingsGenerator {
         return this.getResponseCodeBlockAsType(object, response);
 
       default:
-        consoleLogErrorAndExit(response.name, 'unknown type');
+        consoleLogErrorAndExit(response.name, 'unknown type', response.type);
         return false;
     }
-
-    return result;
   }
 
   public generateResponse(section: string, response: SchemaObject) {
@@ -630,21 +601,21 @@ export class APITypingsGenerator {
   }
 
   private generateMethodParamsAndResponses(methodInfo: JSONSchemaMethodInfoInterface) {
-    const { name } = methodInfo;
-    const section = getMethodSection(name);
+    const { name: methodName } = methodInfo;
+    const section = getMethodSection(methodName);
 
     if (!isObject(methodInfo.responses)) {
-      consoleLogErrorAndExit(`"${name}" "responses" field is not an object.`);
+      consoleLogErrorAndExit(`"${methodName}" "responses" field is not an object.`);
       return;
     }
 
     if (Object.keys(methodInfo.responses).length === 0) {
-      consoleLogErrorAndExit(`"${name}" "responses" field is empty.`);
+      consoleLogErrorAndExit(`"${methodName}" "responses" field is empty.`);
       return;
     }
 
     // Comment with method name for visual sections in file
-    const methodNameComment = new CommentCodeBlock([name]);
+    const methodNameComment = new CommentCodeBlock([methodName]);
     if (methodInfo.description) {
       methodNameComment.appendLines([
         '',
@@ -656,11 +627,11 @@ export class APITypingsGenerator {
     this.generateMethodParams(methodInfo);
 
     Object.entries(methodInfo.responses).forEach(([responseName, responseObject]) => {
-      if (this.ignoredResponses[name] && this.ignoredResponses[name][responseName]) {
+      if (this.ignoredResponses[methodName] && this.ignoredResponses[methodName][responseName]) {
         return;
       }
 
-      responseObject.name = `${name}_${responseName}`;
+      responseObject.name = `${methodName}_${responseName}`;
       this.generateResponse(section, new SchemaObject(responseObject.name, responseObject));
     });
   }

@@ -31,6 +31,7 @@
   "scripts": {
     "clear": "rimraf dist/*",
     "build": "yarn clear && tsc",
+    "watch": "yarn clear && tsc --watch",
     "test": "tsc --noEmit && eslint src --ext .ts"
   },
   "pre-commit": [
