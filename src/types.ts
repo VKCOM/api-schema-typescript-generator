@@ -22,7 +22,7 @@ export interface JSONSchemaPropertyInterface {
   items?: JSONSchemaPropertyInterface;
   $ref?: string;
   minimum?: number;
-  format?: 'uri';
+  format?: 'json' | 'uri';
   description?: string;
 }
 
