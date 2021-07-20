@@ -1,11 +1,11 @@
+import * as Schema from '../types/schema';
 import {
   Dictionary,
-  JSONSchemaMethodInfoInterface,
-  JSONSchemaMethodsDefinitionsInterface,
   ObjectType,
-  RefsDictionary, RefsDictionaryType,
+  RefsDictionary,
 } from '../types';
 import { generateEnumAsUnionType } from './enums';
+import { normalizeMethodInfo } from './methods';
 import { SchemaObject } from './SchemaObject';
 import {
   getInterfaceName, getMethodSection, getObjectNameByRef,
@@ -44,7 +44,7 @@ interface APITypingsGeneratorOptions {
    */
   methodsPattern: string;
 
-  methodsDefinitions: JSONSchemaMethodsDefinitionsInterface;
+  methodsDefinitions: Schema.API;
   objects: Dictionary<SchemaObject>;
   responses: Dictionary<SchemaObject>;
 }
@@ -56,7 +56,7 @@ export class APITypingsGenerator {
     this.methodsPattern = prepareMethodsPattern(options.methodsPattern);
 
     this.methodsDefinitions = options.methodsDefinitions;
-    this.methodsList = options.methodsDefinitions.methods;
+    this.methodsList = options.methodsDefinitions.methods || [];
     this.objects = this.convertJSONSchemaDictionary(options.objects);
     this.responses = this.convertJSONSchemaDictionary(options.responses);
 
@@ -79,8 +79,8 @@ export class APITypingsGenerator {
   outDirPath!: APITypingsGeneratorOptions['outDirPath'];
   methodsPattern!: Dictionary<boolean>;
 
-  methodsDefinitions!: JSONSchemaMethodsDefinitionsInterface;
-  methodsList!: JSONSchemaMethodsDefinitionsInterface['methods'];
+  methodsDefinitions!: Schema.API;
+  methodsList!: NonNullable<Schema.API['methods']>;
   objects!: Dictionary<SchemaObject>;
   responses!: Dictionary<SchemaObject>;
 
@@ -151,10 +151,11 @@ export class APITypingsGenerator {
       if (allOfItem.ref && !this.visitedRefs[allOfItem.ref]) {
         this.visitedRefs[allOfItem.ref] = true;
         const refName = allOfItem.ref;
-        const objectName = getObjectNameByRef(refName);
-        allOfItem = this.objects[objectName];
 
-        if (!allOfItem) {
+        const tempAllOfItem = this.getObjectByRef(refName);
+        if (tempAllOfItem) {
+          allOfItem = tempAllOfItem;
+        } else {
           consoleLogErrorAndExit(`${refName} ref not found`);
         }
       }
@@ -181,11 +182,10 @@ export class APITypingsGenerator {
         if (allOfItem.properties) {
           additionalProperties = allOfItem.properties;
         } else if (allOfItem.ref) {
-          const objectName = getObjectNameByRef(allOfItem.ref);
-          const refObject = this.objects[objectName];
-
+          const refObject = this.getObjectByRef(allOfItem.ref);
           if (!refObject) {
             consoleLogErrorAndExit(`${object.name} ref object in allOf is not found`);
+            return;
           }
 
           additionalProperties = this.getObjectProperties(refObject, deep + 1);
@@ -351,10 +351,14 @@ export class APITypingsGenerator {
     this.generateObjectsFromImports(imports);
   }
 
+  private getObjectByRef(ref: string): SchemaObject | undefined {
+    const refName = getObjectNameByRef(ref);
+    return this.objects[refName];
+  }
+
   private generateObjectsFromRefs(refs: RefsDictionary): void {
     Object.keys(refs).forEach((ref) => {
-      const refName = getObjectNameByRef(ref);
-      const refObject = this.objects[refName];
+      const refObject = this.getObjectByRef(ref);
       if (!refObject) {
         consoleLogInfo(`"${ref}" ref is not found`);
         return;
@@ -366,8 +370,7 @@ export class APITypingsGenerator {
 
   private generateObjectsFromImports(imports: RefsDictionary) {
     Object.keys(imports).forEach((ref) => {
-      const refName = getObjectNameByRef(ref);
-      const refObject = this.objects[refName];
+      const refObject = this.getObjectByRef(ref);
       if (!refObject) {
         consoleLogInfo(`"${ref}" ref is not found`);
         return;
@@ -377,50 +380,9 @@ export class APITypingsGenerator {
     });
   }
 
-  private generateMethodParams(methodInfo: JSONSchemaMethodInfoInterface) {
+  private generateMethodParams(methodInfo: SchemaObject) {
     const section = getMethodSection(methodInfo.name);
     const interfaceName = `${methodInfo.name} params`;
-
-    const parametersRaw = Array.isArray(methodInfo.parameters) ? methodInfo.parameters : [];
-    const requiredParams = parametersRaw.reduce<Dictionary<boolean>>((acc, param) => {
-      if (param.required) {
-        acc[param.name] = true;
-      }
-      return acc;
-    }, {});
-
-    const properties = parametersRaw.map((paramRaw) => {
-      paramRaw = { ...paramRaw };
-
-      // For method params "boolean" type means 1 or 0
-      // Real "false" boolean value will be detected by API as true
-      if (paramRaw.type === 'boolean') {
-        delete paramRaw.type;
-        paramRaw.$ref = baseBoolIntRef;
-      }
-
-      // For parameters of the "array" type, VK API still accepts only a comma-separated string
-      // This may change in the future when the VK API starts accepting a json body
-      if (paramRaw.type === 'array') {
-        paramRaw.type = 'string';
-
-        if (!paramRaw.description) {
-          paramRaw.description = '';
-        }
-
-        if (paramRaw.items) {
-          if (paramRaw.items.$ref) {
-            this.generateObjectsFromRefs({
-              [paramRaw.items.$ref]: RefsDictionaryType.GenerateAndImport,
-            });
-
-            paramRaw.description += newLineChar.repeat(2) + paramRaw.items.$ref;
-          }
-        }
-      }
-
-      return new SchemaObject(paramRaw.name, paramRaw, interfaceName);
-    });
 
     let imports: RefsDictionary = {};
     let codeBlocks: CodeBlocksArray = [];
@@ -433,7 +395,7 @@ export class APITypingsGenerator {
       properties: [],
     });
 
-    properties.forEach((property) => {
+    methodInfo.parameters.forEach((property) => {
       const {
         imports: newImports,
         value,
@@ -447,7 +409,7 @@ export class APITypingsGenerator {
         name: property.name,
         description: property.description,
         value,
-        isRequired: requiredParams[property.name],
+        isRequired: property.isRequired,
       });
     });
 
@@ -455,16 +417,14 @@ export class APITypingsGenerator {
     this.generateObjectsFromImports(imports);
   }
 
-  private getResponseObjectRef(object: SchemaObject): SchemaObject | undefined {
-    const objectName = getObjectNameByRef(object.ref);
+  private getResponseObjectRef(ref: string): SchemaObject | undefined {
+    const objectName = getObjectNameByRef(ref);
 
     if (this.responses[objectName]) {
       return this.responses[objectName];
-    } else if (this.objects[objectName]) {
-      return this.objects[objectName];
     }
 
-    return undefined;
+    return this.getObjectByRef(ref);
   }
 
   private getObjectCodeBlockAsType(object: SchemaObject): GeneratorResultInterface | false {
@@ -554,7 +514,7 @@ export class APITypingsGenerator {
       return this.getObjectCodeBlockAsType(object);
     }
 
-    let response = this.getResponseObjectRef(object);
+    let response = this.getResponseObjectRef(object.ref);
     if (!response) {
       consoleLogError(`response schema object "${object.name}" has no response`, object);
       return false;
@@ -600,39 +560,47 @@ export class APITypingsGenerator {
     this.generateObjectsFromImports(imports);
   }
 
-  private generateMethodParamsAndResponses(methodInfo: JSONSchemaMethodInfoInterface) {
-    const { name: methodName } = methodInfo;
+  private generateMethodParamsAndResponses(method: Schema.Method) {
+    const { name: methodName } = method;
     const section = getMethodSection(methodName);
 
-    if (!isObject(methodInfo.responses)) {
+    if (!isObject(method.responses)) {
       consoleLogErrorAndExit(`"${methodName}" "responses" field is not an object.`);
       return;
     }
 
-    if (Object.keys(methodInfo.responses).length === 0) {
+    if (Object.keys(method.responses).length === 0) {
       consoleLogErrorAndExit(`"${methodName}" "responses" field is empty.`);
       return;
     }
 
     // Comment with method name for visual sections in file
     const methodNameComment = new CommentCodeBlock([methodName]);
-    if (methodInfo.description) {
+    if (method.description) {
       methodNameComment.appendLines([
         '',
-        methodInfo.description,
+        method.description,
       ]);
     }
     this.appendToFileMap(section, {}, [methodNameComment]);
 
-    this.generateMethodParams(methodInfo);
+    const {
+      method: normalizedMethod,
+      parameterRefs,
+    } = normalizeMethodInfo(method);
 
-    Object.entries(methodInfo.responses).forEach(([responseName, responseObject]) => {
+    method = normalizedMethod;
+    this.generateObjectsFromRefs(parameterRefs);
+
+    this.generateMethodParams(new SchemaObject(method.name, method));
+
+    Object.entries(method.responses).forEach(([responseName, responseObject]) => {
       if (this.ignoredResponses[methodName] && this.ignoredResponses[methodName][responseName]) {
         return;
       }
 
-      responseObject.name = `${methodName}_${responseName}`;
-      this.generateResponse(section, new SchemaObject(responseObject.name, responseObject));
+      const name = `${methodName}_${responseName}`;
+      this.generateResponse(section, new SchemaObject(name, responseObject));
     });
   }
 

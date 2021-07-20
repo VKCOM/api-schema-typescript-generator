@@ -46,11 +46,23 @@ export class SchemaObject {
       this.required = [];
     }
 
+    if (typeof object.required === 'boolean') {
+      this.isRequired = object.required;
+    }
+
     this.properties = [];
 
     if (object.properties) {
       Object.entries(object.properties).forEach(([propertyName, property]: [string, any]) => {
         this.properties.push(new SchemaObject(propertyName, property, name));
+      });
+    }
+
+    this.parameters = [];
+
+    if (Array.isArray(object.parameters)) {
+      object.parameters.forEach((parameter: any) => {
+        this.parameters.push(new SchemaObject(parameter.name, parameter, `${name} param`));
       });
     }
 
@@ -77,12 +89,14 @@ export class SchemaObject {
   parentObjectName!: string;
 
   type!: string | string[];
-  readonly description!: string;
-  readonly ref!: string;
+  description!: string;
+  ref!: string;
   required!: string[];
+  isRequired!: boolean;
   readonly enum!: EnumLikeArray;
   readonly enumNames!: EnumLikeArray;
   properties!: SchemaObject[];
+  parameters!: SchemaObject[];
   readonly items!: SchemaObject;
   readonly oneOf!: SchemaObject[];
   readonly allOf!: SchemaObject[];
