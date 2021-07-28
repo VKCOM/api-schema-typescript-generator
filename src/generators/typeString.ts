@@ -134,8 +134,6 @@ export function generateTypeString(
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
     }
-  } else if (object.type) {
-    return generateBaseType(object, options);
   } else if (object.ref) {
     const refName = getObjectNameByRef(object.ref);
 
@@ -174,6 +172,8 @@ export function generateTypeString(
         }
       }
     }
+  } else if (object.type) {
+    return generateBaseType(object, options);
   }
 
   return {
