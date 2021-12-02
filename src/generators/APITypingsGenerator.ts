@@ -15,7 +15,7 @@ import {
 } from '../helpers';
 import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
 import { TypeCodeBlock, TypeScriptCodeTypes } from './TypeCodeBlock';
-import { arrayToMap, isObject, sortArrayAlphabetically, uniqueArray } from '../utils';
+import { isObject, sortArrayAlphabetically, uniqueArray } from '../utils';
 import {
   baseAPIParamsInterfaceName,
   baseBoolIntRef,
@@ -229,7 +229,6 @@ export class APITypingsGenerator {
     let codeBlocks: CodeBlocksArray = [];
 
     const properties = this.getObjectProperties(object);
-    const requiredProperties = arrayToMap(object.required);
 
     const codeBlock = new TypeCodeBlock({
       type: TypeScriptCodeTypes.Interface,
@@ -261,7 +260,7 @@ export class APITypingsGenerator {
         name: property.name,
         description: [property.description, description].join(newLineChar),
         value,
-        isRequired: isPatternProperty(property.name) || requiredProperties[property.name],
+        isRequired: isPatternProperty(property.name) || property.isRequired,
       });
     });
 
