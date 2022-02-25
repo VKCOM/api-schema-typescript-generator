@@ -23,7 +23,7 @@ export const scalarTypes: Dictionary<string> = {
 export const primitiveTypes: Dictionary<string> = {
   ...scalarTypes,
   array: 'any[]',
-  object: '{}',
+  object: '{ [key: string]: unknown }',
   mixed: 'any /* mixed primitive */',
 };
 
