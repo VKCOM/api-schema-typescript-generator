@@ -23,7 +23,8 @@
   ],
   "repository": "https://github.com/VKCOM/api-schema-typescript-generator",
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=12.0.0",
+    "yarn": ">=1.21.1 <=1.22.18"
   },
   "bin": {
     "vk-api-schema-typescript-generator": "./bin/vk-api-schema-typescript-generator.js"
