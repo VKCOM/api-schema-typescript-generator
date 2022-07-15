@@ -18,6 +18,7 @@ export function normalizeMethodInfo(method: Schema.Method): NormalizeMethodInfoR
     // For method params "boolean" type means 1 or 0
     // Real "false" boolean value will be detected by API as true
     if (parameter.type === 'boolean') {
+      // @ts-expect-error
       delete parameter.type;
       parameter.$ref = baseBoolIntRef;
     }

@@ -111,9 +111,10 @@ export function areQuotesNeededForProperty(name: string | number): boolean {
     return false;
   }
 
-  if (/[&]/.test(name)) {
+  if (/[&-]/.test(name)) {
     return true;
   }
+
   return !(/^[a-z_]([a-z0-9_])+$/i.test(name) || /^[a-z_]/i.test(name));
 }
 
