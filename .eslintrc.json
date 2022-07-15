@@ -22,6 +22,16 @@
     "@typescript-eslint/explicit-member-accessibility": "off",
     "@typescript-eslint/no-unnecessary-condition": "off",
     "@typescript-eslint/no-magic-numbers": "off",
-    "@typescript-eslint/no-extra-parens": "off"
-  }
+    "@typescript-eslint/no-extra-parens": "off",
+
+    "no-shadow": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.ts"],
+      "rules": {
+        "no-undef": "off"
+      }
+    }
+  ]
 }
