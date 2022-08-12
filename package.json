@@ -33,7 +33,8 @@
     "clear": "rimraf dist/*",
     "build": "yarn clear && tsc",
     "watch": "yarn clear && tsc --watch",
-    "test": "jest && tsc --noEmit && eslint src --ext .ts"
+    "prettier": "prettier --write \"src/**/*.ts\"",
+    "test": "jest && tsc --noEmit && eslint src --ext .ts && yarn prettier"
   },
   "pre-commit": [
     "test"

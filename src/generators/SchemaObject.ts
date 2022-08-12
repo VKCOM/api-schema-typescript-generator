@@ -1,14 +1,16 @@
 import { EnumLikeArray } from '../types';
 import { isObject, isString } from '../utils';
-import {
-  transformPatternPropertyName,
-} from '../helpers';
+import { transformPatternPropertyName } from '../helpers';
 import { consoleLogErrorAndExit } from '../log';
 
 export class SchemaObject {
   constructor(name: string, object: any, parentName?: string) {
     if (!isObject(object)) {
-      consoleLogErrorAndExit(`[SchemaObject] "${name}" is not an object.`, { name, object, parentName });
+      consoleLogErrorAndExit(`[SchemaObject] "${name}" is not an object.`, {
+        name,
+        object,
+        parentName,
+      });
       return;
     }
 
@@ -67,9 +69,13 @@ export class SchemaObject {
     }
 
     if (object.patternProperties) {
-      Object.entries(object.patternProperties).forEach(([propertyName, property]: [string, any]) => {
-        this.properties.push(new SchemaObject(transformPatternPropertyName(propertyName), property, name));
-      });
+      Object.entries(object.patternProperties).forEach(
+        ([propertyName, property]: [string, any]) => {
+          this.properties.push(
+            new SchemaObject(transformPatternPropertyName(propertyName), property, name),
+          );
+        },
+      );
     }
 
     if (isObject(object.items)) {
@@ -112,6 +118,9 @@ export class SchemaObject {
   }
 
   public clone() {
-    return Object.assign(Object.create(Object.getPrototypeOf(this)), this) as NonNullable<SchemaObject>;
+    return Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      this,
+    ) as NonNullable<SchemaObject>;
   }
 }

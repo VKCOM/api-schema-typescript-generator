@@ -1,15 +1,16 @@
 import * as Schema from '../types/schema';
-import {
-  Dictionary,
-  ObjectType,
-  RefsDictionary,
-} from '../types';
+import { Dictionary, ObjectType, RefsDictionary } from '../types';
 import { generateEnumAsUnionType } from './enums';
 import { normalizeMethodInfo } from './methods';
 import { SchemaObject } from './SchemaObject';
 import {
-  getInterfaceName, getMethodSection, getObjectNameByRef,
-  getSectionFromObjectName, isMethodNeeded, isPatternProperty, prepareBuildDirectory,
+  getInterfaceName,
+  getMethodSection,
+  getObjectNameByRef,
+  getSectionFromObjectName,
+  isMethodNeeded,
+  isPatternProperty,
+  prepareBuildDirectory,
   prepareMethodsPattern,
   writeFile,
 } from '../helpers';
@@ -20,7 +21,8 @@ import {
   baseAPIParamsInterfaceName,
   baseBoolIntRef,
   baseOkResponseRef,
-  basePropertyExistsRef, DEFAULT_API_VERSION,
+  basePropertyExistsRef,
+  DEFAULT_API_VERSION,
   newLineChar,
 } from '../constants';
 import path from 'path';
@@ -71,7 +73,7 @@ export class APITypingsGenerator {
 
     this.ignoredResponses = {
       'storage.get': {
-        'keysResponse': true,
+        keysResponse: true,
       },
     };
 
@@ -133,10 +135,7 @@ export class APITypingsGenerator {
         ...methodFile.imports,
         ...imports,
       },
-      codeBlocks: [
-        ...methodFile.codeBlocks,
-        ...codeBlocks,
-      ],
+      codeBlocks: [...methodFile.codeBlocks, ...codeBlocks],
     };
   }
 
@@ -196,10 +195,7 @@ export class APITypingsGenerator {
         }
 
         if (additionalProperties.length) {
-          properties = [
-            ...properties,
-            ...additionalProperties,
-          ];
+          properties = [...properties, ...additionalProperties];
         }
       });
     }
@@ -269,10 +265,7 @@ export class APITypingsGenerator {
     });
 
     return {
-      codeBlocks: [
-        ...codeBlocks,
-        codeBlock,
-      ],
+      codeBlocks: [...codeBlocks, codeBlock],
       imports,
       value: '',
     };
@@ -342,12 +335,18 @@ export class APITypingsGenerator {
 
     if (stringCodeBlocks.length > 0) {
       const code = stringCodeBlocks.join(newLineChar.repeat(2));
-      this.registerResultFile(path.join('objects', section, `${getInterfaceName(object.name)}.ts`), code);
+      this.registerResultFile(
+        path.join('objects', section, `${getInterfaceName(object.name)}.ts`),
+        code,
+      );
     }
 
     codeBlocks.forEach((codeBlock) => {
       if (codeBlock instanceof TypeCodeBlock && codeBlock.needExport && codeBlock.interfaceName) {
-        this.registerExport(`./objects/${section}/${getInterfaceName(object.name)}.ts`, codeBlock.interfaceName);
+        this.registerExport(
+          `./objects/${section}/${getInterfaceName(object.name)}.ts`,
+          codeBlock.interfaceName,
+        );
       }
     });
 
@@ -403,7 +402,9 @@ export class APITypingsGenerator {
         imports: newImports,
         value,
         codeBlocks: newCodeBlocks,
-      } = generateTypeString(property, this.objects, { needEnumNamesConstant: false });
+      } = generateTypeString(property, this.objects, {
+        needEnumNamesConstant: false,
+      });
 
       imports = { ...imports, ...newImports };
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
@@ -436,11 +437,13 @@ export class APITypingsGenerator {
 
     if (object.enum) {
       const { codeBlocks: newCodeBlocks } = generateEnumAsUnionType(object);
-      codeBlocks = [
-        ...newCodeBlocks,
-      ];
+      codeBlocks = [...newCodeBlocks];
     } else {
-      const { imports: newImports, value, codeBlocks: newCodeBlocks } = generateTypeString(object, this.objects);
+      const {
+        imports: newImports,
+        value,
+        codeBlocks: newCodeBlocks,
+      } = generateTypeString(object, this.objects);
       const codeBlock = new TypeCodeBlock({
         type: TypeScriptCodeTypes.Type,
         refName: object.name,
@@ -452,11 +455,7 @@ export class APITypingsGenerator {
       });
 
       imports = newImports;
-      codeBlocks = [
-        ...codeBlocks,
-        ...newCodeBlocks,
-        codeBlock,
-      ];
+      codeBlocks = [...codeBlocks, ...newCodeBlocks, codeBlock];
     }
 
     return {
@@ -466,13 +465,11 @@ export class APITypingsGenerator {
     };
   }
 
-  private getResponseCodeBlockAsType(object: SchemaObject, response: SchemaObject): GeneratorResultInterface | false {
-    const {
-      imports,
-      value,
-      codeBlocks,
-      description,
-    } = generateTypeString(response, this.objects, {
+  private getResponseCodeBlockAsType(
+    object: SchemaObject,
+    response: SchemaObject,
+  ): GeneratorResultInterface | false {
+    const { imports, value, codeBlocks, description } = generateTypeString(response, this.objects, {
       objectParentName: ' ', // TODO: Refactor
     });
 
@@ -480,20 +477,14 @@ export class APITypingsGenerator {
       type: TypeScriptCodeTypes.Type,
       refName: object.name,
       interfaceName: getInterfaceName(object.name),
-      description: [
-        object.description,
-        description || '',
-      ].join(newLineChar),
+      description: [object.description, description || ''].join(newLineChar),
       needExport: true,
       properties: [],
       value,
     });
 
     return {
-      codeBlocks: [
-        ...codeBlocks,
-        codeBlock,
-      ],
+      codeBlocks: [...codeBlocks, codeBlock],
       imports,
       value: '',
       description,
@@ -580,17 +571,11 @@ export class APITypingsGenerator {
     // Comment with method name for visual sections in file
     const methodNameComment = new CommentCodeBlock([methodName]);
     if (method.description) {
-      methodNameComment.appendLines([
-        '',
-        method.description,
-      ]);
+      methodNameComment.appendLines(['', method.description]);
     }
     this.appendToFileMap(section, {}, [methodNameComment]);
 
-    const {
-      method: normalizedMethod,
-      parameterRefs,
-    } = normalizeMethodInfo(method);
+    const { method: normalizedMethod, parameterRefs } = normalizeMethodInfo(method);
 
     method = normalizedMethod;
     this.generateObjectsFromRefs(parameterRefs);
@@ -623,12 +608,12 @@ export class APITypingsGenerator {
           this.registerExport(`./methods/${section}`, codeBlock.interfaceName);
         }
       });
-      const code = [
-        generateImportsBlock(imports, null),
-        ...codeBlocks,
-      ];
+      const code = [generateImportsBlock(imports, null), ...codeBlocks];
 
-      this.registerResultFile(path.join('methods', `${section}.ts`), code.join(newLineChar.repeat(2)));
+      this.registerResultFile(
+        path.join('methods', `${section}.ts`),
+        code.join(newLineChar.repeat(2)),
+      );
     });
   }
 
@@ -637,30 +622,30 @@ export class APITypingsGenerator {
 
     const code: string[] = [];
 
-    Object.entries(this.errors).reduce<Array<ErrorInterface & { name: string }>>((acc, [name, error]) => {
-      acc.push({ name, ...error });
-      return acc;
-    }, []).sort((errorA, errorB) => {
-      return errorA.code - errorB.code;
-    }).forEach((error) => {
-      const errorConstantName = error.name.toUpperCase();
+    Object.entries(this.errors)
+      .reduce<Array<ErrorInterface & { name: string }>>((acc, [name, error]) => {
+        acc.push({ name, ...error });
+        return acc;
+      }, [])
+      .sort((errorA, errorB) => {
+        return errorA.code - errorB.code;
+      })
+      .forEach((error) => {
+        const errorConstantName = error.name.toUpperCase();
 
-      code.push(
-        new TypeCodeBlock({
-          type: TypeScriptCodeTypes.Const,
-          interfaceName: errorConstantName,
-          needExport: true,
-          value: String(error.code),
-          properties: [],
-          description: [
-            error.description,
-            error.$comment || '',
-          ].join(newLineChar.repeat(2)),
-        }).toString(),
-      );
+        code.push(
+          new TypeCodeBlock({
+            type: TypeScriptCodeTypes.Const,
+            interfaceName: errorConstantName,
+            needExport: true,
+            value: String(error.code),
+            properties: [],
+            description: [error.description, error.$comment || ''].join(newLineChar.repeat(2)),
+          }).toString(),
+        );
 
-      this.registerExport('./common/errors', errorConstantName);
-    });
+        this.registerExport('./common/errors', errorConstantName);
+      });
 
     this.registerResultFile(path.join('common', 'errors.ts'), code.join(newLineChar.repeat(2)));
   }
