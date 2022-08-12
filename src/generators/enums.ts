@@ -18,7 +18,11 @@ export function getEnumNamesIdentifier(name: string) {
   return `${name} enumNames`.trim();
 }
 
-export function generateEnumConstantObject(object: SchemaObject, objectName: string, enumNames: Array<string | number>) {
+export function generateEnumConstantObject(
+  object: SchemaObject,
+  objectName: string,
+  enumNames: Array<string | number>,
+) {
   const enumInterfaceName = getInterfaceName(objectName);
 
   const codeBlock = new TypeCodeBlock({
@@ -52,10 +56,7 @@ export function generateEnumAsUnionType(object: SchemaObject): GeneratorResultIn
     type: TypeScriptCodeTypes.Type,
     refName: object.name,
     interfaceName: getInterfaceName(object.name),
-    description: [
-      object.description,
-      description,
-    ].join(newLineChar),
+    description: [object.description, description].join(newLineChar),
     needExport: true,
     properties: [],
     value,
@@ -97,12 +98,11 @@ interface GenerateInlineEnumOptions {
   refName?: string;
 }
 
-export function generateInlineEnum(object: SchemaObject, options: GenerateInlineEnumOptions = {}): GeneratorResultInterface {
-  const {
-    isNumericEnum,
-    enumNames,
-    needEnumNamesDescription,
-  } = getEnumNames(object);
+export function generateInlineEnum(
+  object: SchemaObject,
+  options: GenerateInlineEnumOptions = {},
+): GeneratorResultInterface {
+  const { isNumericEnum, enumNames, needEnumNamesDescription } = getEnumNames(object);
 
   options = {
     needEnumNamesConstant: isNumericEnum,

@@ -10,19 +10,12 @@ export class CommentCodeBlock extends BaseCodeBlock {
   lines: string[];
 
   appendLines(lines: string[]) {
-    this.lines = [
-      ...this.lines,
-      ...lines,
-    ];
+    this.lines = [...this.lines, ...lines];
   }
 
   toString(): string {
     const inner = this.lines.map((line) => spaceChar + `* ${line}`.trim());
 
-    return [
-      '/**',
-      ...inner,
-      ' */',
-    ].join(newLineChar);
+    return ['/**', ...inner, ' */'].join(newLineChar);
   }
 }

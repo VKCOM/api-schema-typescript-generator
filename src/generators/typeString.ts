@@ -28,7 +28,10 @@ interface GenerateTypeStringOptions {
   needEnumNamesConstant?: boolean;
 }
 
-function generateBaseType(object: SchemaObject, options: GenerateTypeStringOptions): GeneratorResultInterface {
+function generateBaseType(
+  object: SchemaObject,
+  options: GenerateTypeStringOptions,
+): GeneratorResultInterface {
   let codeBlocks: CodeBlocksArray = [];
   let typeString = 'any /* default type */';
   let imports: RefsDictionary = {};

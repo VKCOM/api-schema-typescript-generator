@@ -11,16 +11,24 @@ const helpMessage = `
 
   ${chalk.greenBright('--help')}          Shows this help.
 
-  ${chalk.greenBright('--schemaDir')}     The relative path to directory with ${chalk.bold('methods.json')}, ${chalk.bold('objects.json')} and ${chalk.bold('responses.json')} files.
+  ${chalk.greenBright('--schemaDir')}     The relative path to directory with ${chalk.bold(
+  'methods.json',
+)}, ${chalk.bold('objects.json')} and ${chalk.bold('responses.json')} files.
 
   ${chalk.greenBright('--outDir')}        The directory where the files will be generated.
                   If you skip this param, script will work in linter mode without emitting files to file system.
-                  ${chalk.bold('Please note')} that this folder will be cleared after starting the generation.
+                  ${chalk.bold(
+                    'Please note',
+                  )} that this folder will be cleared after starting the generation.
 
-  ${chalk.greenBright('--methods')}       List of methods to generate responses and all needed objects.
+  ${chalk.greenBright(
+    '--methods',
+  )}       List of methods to generate responses and all needed objects.
                   Example:
-                  - ${chalk.bold('\'*\'')} - to generate all responses and objects.
-                  - ${chalk.bold('\'messages.*, users.get, groups.isMember\'')} - to generate all methods from messages section, users.get and groups.isMember.
+                  - ${chalk.bold("'*'")} - to generate all responses and objects.
+                  - ${chalk.bold(
+                    "'messages.*, users.get, groups.isMember'",
+                  )} - to generate all methods from messages section, users.get and groups.isMember.
 `;
 
 export async function main() {

@@ -3,7 +3,11 @@ import { getInterfaceName, getSectionFromObjectName } from './helpers';
 import { Dictionary, ObjectType, RefsDictionary, RefsDictionaryType } from './types';
 import { sortArrayAlphabetically, uniqueArray } from './utils';
 
-export function generateImportsBlock(refs: RefsDictionary, section: string | null, type?: ObjectType): string {
+export function generateImportsBlock(
+  refs: RefsDictionary,
+  section: string | null,
+  type?: ObjectType,
+): string {
   let importRefs = Object.entries(refs)
     .filter(([, type]) => type === RefsDictionaryType.GenerateAndImport)
     .map(([key]) => key);

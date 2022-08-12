@@ -24,6 +24,9 @@
     "@typescript-eslint/no-magic-numbers": "off",
     "@typescript-eslint/no-extra-parens": "off",
 
+    "@typescript-eslint/quotes": "off",
+    "@typescript-eslint/indent": "off",
+
     "no-shadow": "off"
   },
   "overrides": [

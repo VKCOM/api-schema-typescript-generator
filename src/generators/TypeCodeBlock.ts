@@ -64,41 +64,45 @@ export class TypeCodeBlock extends BaseCodeBlock {
   }
 
   private getPropertiesCode() {
-    const quoteChar = this.properties.some((property) => areQuotesNeededForProperty(property.name)) ? '\'' : '';
+    const quoteChar = this.properties.some((property) => areQuotesNeededForProperty(property.name))
+      ? "'"
+      : '';
 
-    return this.properties.map((property) => {
-      let divider = '';
-      let lineEnd = '';
+    return this.properties
+      .map((property) => {
+        let divider = '';
+        let lineEnd = '';
 
-      switch (this.type) {
-        case TypeScriptCodeTypes.Interface:
-          divider = property.isRequired ? ':' : '?:';
-          lineEnd = ';';
-          break;
-        case TypeScriptCodeTypes.ConstantObject:
-          divider = ':';
-          lineEnd = ',';
-          break;
-        case TypeScriptCodeTypes.Enum:
-          divider = ' =';
-          lineEnd = ',';
-          break;
-      }
-
-      let value = property.wrapValue ? quoteJavaScriptValue(property.value) : property.value;
-      let propertyCode = [
-        `  ${quoteChar}${property.name}${quoteChar}${divider} ${value}${lineEnd}`,
-      ];
-
-      if (property.description) {
-        const commentLines = joinCommentLines(2, property.description);
-        if (commentLines.length) {
-          propertyCode.unshift(commentLines.join(newLineChar));
+        switch (this.type) {
+          case TypeScriptCodeTypes.Interface:
+            divider = property.isRequired ? ':' : '?:';
+            lineEnd = ';';
+            break;
+          case TypeScriptCodeTypes.ConstantObject:
+            divider = ':';
+            lineEnd = ',';
+            break;
+          case TypeScriptCodeTypes.Enum:
+            divider = ' =';
+            lineEnd = ',';
+            break;
         }
-      }
 
-      return propertyCode.join(newLineChar);
-    }).join(newLineChar);
+        let value = property.wrapValue ? quoteJavaScriptValue(property.value) : property.value;
+        let propertyCode = [
+          `  ${quoteChar}${property.name}${quoteChar}${divider} ${value}${lineEnd}`,
+        ];
+
+        if (property.description) {
+          const commentLines = joinCommentLines(2, property.description);
+          if (commentLines.length) {
+            propertyCode.unshift(commentLines.join(newLineChar));
+          }
+        }
+
+        return propertyCode.join(newLineChar);
+      })
+      .join(newLineChar);
   }
 
   toString(): string {
@@ -114,10 +118,7 @@ export class TypeCodeBlock extends BaseCodeBlock {
     }
 
     if (this.description) {
-      before = [
-        ...before,
-        ...joinCommentLines(0, this.description),
-      ];
+      before = [...before, ...joinCommentLines(0, this.description)];
     }
 
     switch (this.type) {
@@ -126,19 +127,19 @@ export class TypeCodeBlock extends BaseCodeBlock {
           if (this.options.allowEmptyInterface) {
             propertiesCode = '';
           } else {
-            propertiesCode = [
-              '  // empty interface',
-              '  [key: string]: any;',
-            ].join(newLineChar);
+            propertiesCode = ['  // empty interface', '  [key: string]: any;'].join(newLineChar);
           }
         }
 
-        const extendsInterfaces = Array.isArray(this.extendsInterfaces) && this.extendsInterfaces.length ?
-          this.extendsInterfaces.join(', ') :
-          '';
+        const extendsInterfaces =
+          Array.isArray(this.extendsInterfaces) && this.extendsInterfaces.length
+            ? this.extendsInterfaces.join(', ')
+            : '';
 
         code = [
-          trimStringDoubleSpaces(`${exportKeyword} interface ${this.interfaceName} ${extendsInterfaces} {`),
+          trimStringDoubleSpaces(
+            `${exportKeyword} interface ${this.interfaceName} ${extendsInterfaces} {`,
+          ),
           propertiesCode,
           '}',
         ].join(propertiesCode.length ? newLineChar : '');
@@ -182,9 +183,6 @@ export class TypeCodeBlock extends BaseCodeBlock {
         break;
     }
 
-    return [
-      before.join(newLineChar),
-      code,
-    ].join(newLineChar).trim();
+    return [before.join(newLineChar), code].join(newLineChar).trim();
   }
 }

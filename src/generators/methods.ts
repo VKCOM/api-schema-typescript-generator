@@ -37,9 +37,9 @@ export function normalizeMethodInfo(method: Schema.Method): NormalizeMethodInfoR
       const ref = parameter.items?.$ref;
       parameterRefs[ref] = RefsDictionaryType.Generate;
 
-      parameter.description += newLineChar.repeat(2) + [
-        `@see ${getInterfaceName(getObjectNameByRef(ref))} (${ref})`,
-      ].join(newLineChar);
+      parameter.description +=
+        newLineChar.repeat(2) +
+        [`@see ${getInterfaceName(getObjectNameByRef(ref))} (${ref})`].join(newLineChar);
     }
   });
 
