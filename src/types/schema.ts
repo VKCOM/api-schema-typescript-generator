@@ -150,3 +150,10 @@ export interface Response {
   };
   additionalProperties?: boolean;
 }
+
+export interface ErrorInterface {
+  code: number;
+  description: string;
+  $comment?: string;
+  subcodes?: Array<{ $ref: string }>;
+}

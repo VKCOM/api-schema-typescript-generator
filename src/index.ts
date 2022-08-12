@@ -61,6 +61,7 @@ export async function main() {
     methodsDefinitions,
     { definitions: responsesDefinitions },
     { definitions: objectsDefinitions },
+    { errors: errorsDefinitions },
   ] = await Promise.all([
     readJSONFile(path.resolve(schemaDir, 'methods.json')),
     readJSONFile(path.resolve(schemaDir, 'responses.json')),
@@ -91,6 +92,7 @@ export async function main() {
     methodsDefinitions,
     objects: objectsDefinitions,
     responses: responsesDefinitions,
+    errors: errorsDefinitions,
     methodsPattern: methods.join(','),
   });
 

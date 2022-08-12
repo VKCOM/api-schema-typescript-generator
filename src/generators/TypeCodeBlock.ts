@@ -9,6 +9,7 @@ export enum TypeScriptCodeTypes {
   Enum = 'enum',
   ConstantObject = 'constant_object',
   Type = 'type',
+  Const = 'const',
 }
 
 export interface TypeCodeBlockProperty {
@@ -167,6 +168,16 @@ export class TypeCodeBlock extends BaseCodeBlock {
 
         code = [
           trimStringDoubleSpaces(`${exportKeyword} type ${this.interfaceName} = ${this.value};`),
+        ].join(newLineChar);
+        break;
+
+      case TypeScriptCodeTypes.Const:
+        if (!this.value) {
+          consoleLogErrorAndExit(`"${this.interfaceName}" type has empty value`);
+        }
+
+        code = [
+          trimStringDoubleSpaces(`${exportKeyword} const ${this.interfaceName} = ${this.value};`),
         ].join(newLineChar);
         break;
     }

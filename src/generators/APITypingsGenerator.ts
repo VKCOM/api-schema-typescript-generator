@@ -28,6 +28,7 @@ import { CommentCodeBlock } from './CommentCodeBlock';
 import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log';
 import { generateImportsBlock } from '../generator';
 import { generateTypeString } from './typeString';
+import { ErrorInterface } from '../types/schema';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;
@@ -47,6 +48,7 @@ interface APITypingsGeneratorOptions {
   methodsDefinitions: Schema.API;
   objects: Dictionary<SchemaObject>;
   responses: Dictionary<SchemaObject>;
+  errors: Dictionary<ErrorInterface>;
 }
 
 export class APITypingsGenerator {
@@ -59,6 +61,7 @@ export class APITypingsGenerator {
     this.methodsList = options.methodsDefinitions.methods || [];
     this.objects = this.convertJSONSchemaDictionary(options.objects);
     this.responses = this.convertJSONSchemaDictionary(options.responses);
+    this.errors = options.errors;
 
     this.visitedRefs = {};
     this.generatedObjects = {};
@@ -83,6 +86,7 @@ export class APITypingsGenerator {
   methodsList!: NonNullable<Schema.API['methods']>;
   objects!: Dictionary<SchemaObject>;
   responses!: Dictionary<SchemaObject>;
+  errors!: Dictionary<ErrorInterface>;
 
   visitedRefs!: Dictionary<boolean>;
   generatedObjects!: Dictionary<boolean>;
@@ -628,6 +632,39 @@ export class APITypingsGenerator {
     });
   }
 
+  private generateErrors() {
+    consoleLogInfo('creating errors...');
+
+    const code: string[] = [];
+
+    Object.entries(this.errors).reduce<Array<ErrorInterface & { name: string }>>((acc, [name, error]) => {
+      acc.push({ name, ...error });
+      return acc;
+    }, []).sort((errorA, errorB) => {
+      return errorA.code - errorB.code;
+    }).forEach((error) => {
+      const errorConstantName = error.name.toUpperCase();
+
+      code.push(
+        new TypeCodeBlock({
+          type: TypeScriptCodeTypes.Const,
+          interfaceName: errorConstantName,
+          needExport: true,
+          value: String(error.code),
+          properties: [],
+          description: [
+            error.description,
+            error.$comment || '',
+          ].join(newLineChar.repeat(2)),
+        }).toString(),
+      );
+
+      this.registerExport('./common/errors', errorConstantName);
+    });
+
+    this.registerResultFile(path.join('common', 'errors.ts'), code.join(newLineChar.repeat(2)));
+  }
+
   private createCommonTypes() {
     consoleLogInfo('creating common types...');
     const code: string[] = [];
@@ -708,6 +745,7 @@ export class APITypingsGenerator {
     consoleLogInfo('generate');
 
     this.generateMethods();
+    this.generateErrors();
 
     if (this.needEmit) {
       this.createCommonTypes();
