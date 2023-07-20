@@ -297,27 +297,27 @@ export class APITypingsGenerator {
 
     let result: GeneratorResultInterface | false = false;
 
-    if (!object.type && object.ref) {
+    if (object.ref) {
       result = this.getPrimitiveInterfaceCode(object);
-    }
+    } else {
+      switch (object.type) {
+        case 'object':
+          result = this.getObjectInterfaceCode(object);
+          break;
 
-    switch (object.type) {
-      case 'object':
-        result = this.getObjectInterfaceCode(object);
-        break;
+        case 'string':
+        case 'number':
+        case 'integer':
+        case 'array':
+        case 'boolean':
+          result = this.getPrimitiveInterfaceCode(object);
+          break;
 
-      case 'string':
-      case 'number':
-      case 'integer':
-      case 'array':
-      case 'boolean':
-        result = this.getPrimitiveInterfaceCode(object);
-        break;
-
-      default:
-        if (!result) {
-          consoleLogErrorAndExit(getInterfaceName(object.name), 'Unknown type of object', object);
-        }
+        default:
+          if (!result) {
+            consoleLogErrorAndExit(getInterfaceName(object.name), 'Unknown type of object', object);
+          }
+      }
     }
 
     if (!result) {
