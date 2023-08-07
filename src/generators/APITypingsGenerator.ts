@@ -31,6 +31,7 @@ import { consoleLogError, consoleLogErrorAndExit, consoleLogInfo } from '../log'
 import { generateImportsBlock } from '../generator';
 import { generateTypeString } from './typeString';
 import { ErrorInterface } from '../types/schema';
+import { mergeImports } from './utils/mergeImports';
 
 interface APITypingsGeneratorOptions {
   needEmit: boolean;
@@ -131,10 +132,7 @@ export class APITypingsGenerator {
     };
 
     this.methodFilesMap[section] = {
-      imports: {
-        ...methodFile.imports,
-        ...imports,
-      },
+      imports: mergeImports(methodFile.imports, imports),
       codeBlocks: [...methodFile.codeBlocks, ...codeBlocks],
     };
   }
@@ -253,7 +251,7 @@ export class APITypingsGenerator {
         objectParentName: object.name,
       });
 
-      imports = { ...imports, ...newImports };
+      imports = mergeImports(imports, newImports);
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
 
       codeBlock.addProperty({
@@ -297,7 +295,7 @@ export class APITypingsGenerator {
 
     let result: GeneratorResultInterface | false = false;
 
-    if (object.ref) {
+    if (object.ref && object.type === 'object') {
       result = this.getPrimitiveInterfaceCode(object);
     } else {
       switch (object.type) {
@@ -406,7 +404,7 @@ export class APITypingsGenerator {
         needEnumNamesConstant: false,
       });
 
-      imports = { ...imports, ...newImports };
+      imports = mergeImports(imports, newImports);
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
 
       codeBlock.addProperty({
