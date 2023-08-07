@@ -19,6 +19,7 @@ import { Dictionary, RefsDictionary, RefsDictionaryType } from '../types';
 import { isString } from '../utils';
 import { CodeBlocksArray, GeneratorResultInterface } from './BaseCodeBlock';
 import { SchemaObject } from './SchemaObject';
+import { mergeImports } from './utils/mergeImports';
 
 interface GenerateTypeStringOptions {
   objectParentName?: string;
@@ -92,7 +93,7 @@ export function generateTypeString(
   if (object.oneOf) {
     const values = object.oneOf.map((oneOfObject) => {
       const { value, imports: newImports } = generateTypeString(oneOfObject, objects);
-      imports = { ...imports, ...newImports };
+      imports = mergeImports(imports, newImports);
       return value;
     });
 
@@ -134,7 +135,7 @@ export function generateTypeString(
 
       typeString = formatArrayDepth(value, depth);
       description = newDescription;
-      imports = { ...imports, ...newImports };
+      imports = mergeImports(imports, newImports);
       codeBlocks = [...codeBlocks, ...newCodeBlocks];
     }
   } else if (object.ref) {
@@ -162,13 +163,16 @@ export function generateTypeString(
         } else if (refObject.oneOf) {
           const values = refObject.oneOf.map((oneOfObject) => {
             const { value, imports: newImports } = generateTypeString(oneOfObject, objects);
-            imports = { ...imports, ...newImports };
+            imports = mergeImports(imports, newImports);
             return value;
           });
 
           typeString = joinOneOfValues(values);
         } else if (isString(refObject.type) && scalarTypes[refObject.type] && !refObject.ref) {
           typeString = scalarTypes[refObject.type];
+        } else if (object.type === PropertyType.STRING) {
+          imports[refName] = RefsDictionaryType.Generate;
+          typeString = scalarTypes.string;
         } else {
           imports[refName] = RefsDictionaryType.GenerateAndImport;
           typeString = getInterfaceName(refName);
