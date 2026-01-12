@@ -382,14 +382,14 @@ export class APITypingsGenerator {
 
   private generateMethodParams(methodInfo: SchemaObject) {
     const section = getMethodSection(methodInfo.name);
-    const interfaceName = `${methodInfo.name} params`;
+    const interfaceName = getInterfaceName(`${methodInfo.name} params`);
 
     let imports: RefsDictionary = {};
     let codeBlocks: CodeBlocksArray = [];
 
     const codeBlock = new TypeCodeBlock({
       type: TypeScriptCodeTypes.Interface,
-      interfaceName: getInterfaceName(interfaceName),
+      interfaceName: interfaceName,
       needExport: true,
       allowEmptyInterface: true,
       properties: [],
@@ -417,6 +417,8 @@ export class APITypingsGenerator {
 
     this.appendToFileMap(section, imports, [...codeBlocks, codeBlock]);
     this.generateObjectsFromImports(imports);
+
+    return interfaceName;
   }
 
   private getResponseObjectRef(ref: string): SchemaObject | undefined {
@@ -543,7 +545,7 @@ export class APITypingsGenerator {
   public generateResponse(section: string, response: SchemaObject) {
     const result = this.getResponseCodeBlock(response);
     if (!result) {
-      return;
+      throw new Error('Unable to generate response');
     }
 
     const { codeBlocks, imports } = result;
@@ -578,16 +580,67 @@ export class APITypingsGenerator {
     method = normalizedMethod;
     this.generateObjectsFromRefs(parameterRefs);
 
-    this.generateMethodParams(new SchemaObject(method.name, method));
+    const methodParamsInterfaceName = this.generateMethodParams(
+      new SchemaObject(method.name, method),
+    );
 
-    Object.entries(method.responses).forEach(([responseName, responseObject]) => {
-      if (this.ignoredResponses[methodName] && this.ignoredResponses[methodName][responseName]) {
-        return;
-      }
+    const methodResponsesInterfaceName = Object.entries(method.responses)
+      .map(([responseName, responseObject]) => {
+        if (this.ignoredResponses[methodName] && this.ignoredResponses[methodName][responseName]) {
+          return;
+        }
 
-      const name = `${methodName}_${responseName}`;
-      this.generateResponse(section, new SchemaObject(name, responseObject));
+        const name = `${methodName}_${responseName}`;
+        const interfaceName = getInterfaceName(name);
+        try {
+          this.generateResponse(section, new SchemaObject(name, responseObject));
+          return interfaceName;
+        } catch (e) {
+          return;
+        }
+      })
+      .filter(Boolean) as string[];
+
+    this.generateMethodType(methodName, methodParamsInterfaceName, methodResponsesInterfaceName);
+  }
+
+  private generateMethodType(
+    methodName: string,
+    methodParamsInterfaceName: string,
+    methodResponsesInterfaceName: string[],
+  ) {
+    const codeBlock = new TypeCodeBlock({
+      type: TypeScriptCodeTypes.Interface,
+      interfaceName: getInterfaceName(`${methodName} method`),
+      needExport: true,
+      allowEmptyInterface: true,
+      properties: [],
     });
+
+    codeBlock.addProperty({
+      name: 'method',
+      value: methodName,
+      isRequired: true,
+      wrapValue: true,
+    });
+
+    codeBlock.addProperty({
+      name: 'request',
+      value: methodParamsInterfaceName,
+      isRequired: true,
+    });
+
+    codeBlock.addProperty({
+      name: 'response',
+      value:
+        methodResponsesInterfaceName.length > 0
+          ? methodResponsesInterfaceName.join(' | ')
+          : 'unknown',
+      isRequired: true,
+    });
+
+    const section = getMethodSection(methodName);
+    this.appendToFileMap(section, {}, [codeBlock]);
   }
 
   private generateMethods() {
@@ -601,11 +654,38 @@ export class APITypingsGenerator {
 
     Object.keys(this.methodFilesMap).forEach((section) => {
       const { imports, codeBlocks } = this.methodFilesMap[section];
+      const methodNames: string[] = [];
       codeBlocks.forEach((codeBlock) => {
         if (codeBlock instanceof TypeCodeBlock && codeBlock.needExport && codeBlock.interfaceName) {
+          /**
+           * for interfaceName structure
+           * @see this.generateMethodType
+           */
+          if (codeBlock.interfaceName.endsWith('Method')) {
+            methodNames.push(codeBlock.interfaceName);
+            // Skip export as it will be exported in union type
+            return;
+          }
+
           this.registerExport(`./methods/${section}`, codeBlock.interfaceName);
         }
       });
+
+      if (methodNames.length > 0) {
+        const sectionMethodsCodeBlock = new TypeCodeBlock({
+          type: TypeScriptCodeTypes.Type,
+          interfaceName: getInterfaceName(`${section} methods union`),
+          needExport: true,
+          allowEmptyInterface: true,
+          value: methodNames.join(' | '),
+          properties: [],
+        });
+
+        codeBlocks.push(sectionMethodsCodeBlock);
+
+        this.registerExport(`./methods/${section}`, sectionMethodsCodeBlock.interfaceName);
+      }
+
       const code = [generateImportsBlock(imports, null), ...codeBlocks];
 
       this.registerResultFile(
@@ -685,8 +765,23 @@ export class APITypingsGenerator {
       }).toString(),
     );
 
+    code.push(`
+type MethodOf<M> = M extends { method: string } ? M['method'] : never;
+type RequestOf<M> = M extends { request: unknown } ? M['request'] : never;
+type ResponseOf<M> = M extends { response: unknown } ? M['response'] : never;
+
+export type CreateMethodMap<Type extends { method: string }> = {
+  [Property in Type as Property['method']]: {
+    method: MethodOf<Property>;
+    request: RequestOf<Property>;
+    response: ResponseOf<Property>;
+  };
+};
+    `);
+
     this.registerExport('./common/common', 'API_VERSION');
     this.registerExport('./common/common', getInterfaceName(baseAPIParamsInterfaceName));
+    this.registerExport('./common/common', 'CreateMethodMap');
     this.registerResultFile(path.join('common', 'common.ts'), code.join(newLineChar.repeat(2)));
   }
 
@@ -698,6 +793,60 @@ export class APITypingsGenerator {
 
     const blocks: string[] = [];
     let exportedObjects: Dictionary<boolean> = {};
+    let methodNames = new Set<string>();
+
+    sortArrayAlphabetically(Object.keys(this.exports)).forEach((path) => {
+      if (!path.startsWith('./methods/')) {
+        return;
+      }
+
+      const objects = Object.keys(this.exports[path]);
+      if (!objects.length) {
+        return;
+      }
+
+      const blockLines: string[] = [];
+
+      sortArrayAlphabetically(objects).forEach((object) => {
+        /**
+         * for interfaceName structure
+         * @see this.generateMethods
+         */
+        if (!methodNames.has(object) && /^[A-Z][a-zA-Z0-9]*MethodsUnion$/.test(object)) {
+          methodNames.add(object);
+          exportedObjects[object] = true; // To skip in export block
+          blockLines.push(`  ${object},`);
+        }
+      });
+
+      if (blockLines.length > 0) {
+        blockLines.unshift('import type {');
+        blockLines.push(`} from '${path.replace('.ts', '')}';`);
+
+        blocks.push(blockLines.join(newLineChar));
+      }
+    });
+
+    blocks.push("import type { CreateMethodMap } from './common/common';");
+
+    const methodsCodeBlock = new TypeCodeBlock({
+      type: TypeScriptCodeTypes.Type,
+      interfaceName: 'ApiMethodsUnion',
+      needExport: false,
+      properties: [],
+      value: Array.from(methodNames).join(' | '),
+    });
+    blocks.push(methodsCodeBlock.toString());
+
+    blocks.push(
+      new TypeCodeBlock({
+        type: TypeScriptCodeTypes.Type,
+        interfaceName: 'ApiMethodsMap',
+        needExport: true,
+        properties: [],
+        value: `CreateMethodMap<${methodsCodeBlock.interfaceName}>`,
+      }).toString(),
+    );
 
     sortArrayAlphabetically(Object.keys(this.exports)).forEach((path) => {
       const objects = Object.keys(this.exports[path]);
