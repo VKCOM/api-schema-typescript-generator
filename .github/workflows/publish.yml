@@ -10,6 +10,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # Recommended for actions/setup-node
+      id-token: write # Required for OIDC
     steps:
       - uses: actions/checkout@v5
         with:
@@ -17,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version-file: '.nvmrc'
           cache: 'yarn'
           always-auth: true
           registry-url: 'https://registry.npmjs.org'
@@ -43,5 +46,3 @@ jobs:
 
       - name: Publushing release
         run: yarn publish --non-interactive
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPMJS_PUBLISH_TOKEN }}
