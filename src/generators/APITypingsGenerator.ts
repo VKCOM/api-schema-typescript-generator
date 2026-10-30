@@ -295,7 +295,7 @@ export class APITypingsGenerator {
 
     let result: GeneratorResultInterface | false = false;
 
-    if (object.ref && object.type === 'object') {
+    if (object.oneOf || Array.isArray(object.type) || (object.ref && object.type === 'object')) {
       result = this.getPrimitiveInterfaceCode(object);
     } else {
       switch (object.type) {
