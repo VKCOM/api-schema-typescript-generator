@@ -10,9 +10,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: 'yarn'
+          node-version-file: '.nvmrc'
 
-      - run: yarn install --frozen-lockfile
+      - run: corepack enable
+
+      - uses: actions/cache@v4
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+
+      - run: yarn install --immutable
 
       - run: yarn test

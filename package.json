@@ -27,13 +27,14 @@
   "repository": "https://github.com/VKCOM/api-schema-typescript-generator",
   "engines": {
     "node": ">=12.0.0",
-    "yarn": "^1.21.1"
+    "yarn": "^4.18.1"
   },
+  "packageManager": "yarn@4.18.1",
   "bin": {
     "vk-api-schema-typescript-generator": "./bin/vk-api-schema-typescript-generator.js"
   },
   "scripts": {
-    "clear": "rimraf dist/*",
+    "clear": "rimraf dist",
     "build": "yarn clear && tsc",
     "watch": "yarn clear && tsc --watch",
     "prettier": "prettier --write \"src/**/*.ts\"",
