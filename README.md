@@ -4,6 +4,17 @@
 
 This package generates TypeScript typings based on the [VK API JSON schema](https://github.com/VKCOM/vk-api-schema).
 
+## Development
+
+Use the Node.js version from `.nvmrc`. Enable Corepack to use the Yarn version pinned in `package.json`:
+
+```shell
+corepack enable
+yarn install --immutable
+yarn test
+yarn build
+```
+
 ## Usage
 
 #### Via npx:

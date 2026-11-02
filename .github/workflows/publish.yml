@@ -21,11 +21,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-          cache: 'yarn'
-          always-auth: true
-          registry-url: 'https://registry.npmjs.org'
 
-      - run: yarn install --frozen-lockfile
+      - run: corepack enable
+
+      - uses: actions/cache@v4
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+
+      - run: yarn install --immutable
 
       - run: yarn test
 
@@ -36,7 +40,16 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Action"
 
-      - run: yarn version --new-version ${{ github.event.inputs.version }} --no-commit-hooks
+      - name: Bump version
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          yarn version "$RELEASE_VERSION"
+          git add package.json yarn.lock
+          if ! git diff --cached --quiet; then
+            git -c core.hooksPath=/dev/null commit -m "v$RELEASE_VERSION"
+            git tag "v$RELEASE_VERSION"
+          fi
 
       - name: Pushing changes
         uses: ad-m/github-push-action@master
@@ -44,5 +57,5 @@ jobs:
           github_token: ${{ secrets.DEVTOOLS_GITHUB_TOKEN }}
           branch: ${{ github.ref }}
 
-      - name: Publushing release
-        run: yarn publish --non-interactive
+      - name: Publishing release
+        run: yarn npm publish
